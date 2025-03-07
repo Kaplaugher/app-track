@@ -3,7 +3,8 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/eslint',
     '@nuxt/ui-pro',
-    '@vueuse/nuxt'
+    '@vueuse/nuxt',
+    '@clerk/nuxt'
   ],
 
   devtools: {

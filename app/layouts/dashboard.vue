@@ -117,6 +117,12 @@ onMounted(async () => {
           orientation="vertical"
           class="mt-auto"
         />
+        <SignedOut>
+          <SignInButton />
+        </SignedOut>
+        <SignedIn>
+          <UserButton />
+        </SignedIn>
       </template>
 
       <template #footer="{ collapsed }">

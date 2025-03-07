@@ -15,7 +15,7 @@ const items = computed(() => [
   <UHeader>
     <template #title>
       <h1 class="text-2xl font-bold text-white">
-        PrimeFit
+        AppTrack
       </h1>
     </template>
 
