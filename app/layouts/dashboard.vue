@@ -5,34 +5,34 @@ const toast = useToast()
 const links = [[{
   label: 'Home',
   icon: 'i-lucide-house',
-  to: '/'
+  to: '/dashboard'
 }, {
   label: 'Inbox',
   icon: 'i-lucide-inbox',
-  to: '/inbox',
+  to: '/dashboard/inbox',
   badge: '4'
 }, {
   label: 'Customers',
   icon: 'i-lucide-users',
-  to: '/customers'
+  to: '/dashboard/customers'
 }, {
   label: 'Settings',
-  to: '/settings',
+  to: '/dashboard/settings',
   icon: 'i-lucide-settings',
   defaultOpen: true,
   children: [{
     label: 'General',
-    to: '/settings',
+    to: '/dashboard/settings',
     exact: true
   }, {
     label: 'Members',
-    to: '/settings/members'
+    to: '/dashboard/settings/members'
   }, {
     label: 'Notifications',
-    to: '/settings/notifications'
+    to: '/dashboard/settings/notifications'
   }, {
     label: 'Security',
-    to: '/settings/security'
+    to: '/dashboard/settings/security'
   }]
 }], [{
   label: 'Feedback',
