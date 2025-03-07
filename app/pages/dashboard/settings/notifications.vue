@@ -7,6 +7,10 @@ const state = reactive<{ [key: string]: boolean }>({
   important_updates: true
 })
 
+definePageMeta({
+  layout: 'dashboard'
+})
+
 const sections = [{
   title: 'Notification channels',
   description: 'Where can we notify you?',

@@ -1,68 +1,88 @@
 <script setup lang="ts">
-import { sub } from 'date-fns'
-import type { Period, Range } from '~/types'
+const links = ref([
+  {
+    label: 'Get started',
+    to: '/getting-started',
+    icon: 'i-lucide-square-play'
+  },
+  {
+    label: 'Learn more',
+    to: '/getting-started/theme',
+    color: 'primary',
+    variant: 'subtle',
+    trailingIcon: 'i-lucide-arrow-right'
+  }
+])
+const features = ref([
+  {
+    title: 'Application Tracking',
+    description: 'Keep track of all your job applications in one place with our intuitive dashboard.',
+    icon: 'i-lucide-clipboard-list',
+    to: '/features/tracking'
+  },
+  {
+    title: 'AI Resume Optimization',
+    description: 'Let our AI analyze and optimize your resume for each job application.',
+    icon: 'i-lucide-sparkles',
+    to: '/features/ai-resume'
+  },
+  {
+    title: 'Job Analytics',
+    description: 'Get insights into your application process and improve your success rate.',
+    icon: 'i-lucide-bar-chart',
+    to: '/features/analytics'
+  }
+])
+const plans = ref([
+  {
+    title: 'Free',
+    description: 'Tailored for indie hackers.',
+    price: '$0',
+    features: [
+      'Application Tracking',
+      'Lifetime access'
+    ],
+    button: {
+      label: 'Buy now'
+    }
+  },
+  {
+    title: 'Pro',
+    description: 'Best suited for small teams.',
+    price: '$10/month',
+    features: [
+      'Browser Extension',
+      'AI Resume Review',
+      'Ghost Job Analysis'
+    ],
+    button: {
+      label: 'Buy now'
+    }
+  }
 
-const { isNotificationsSlideoverOpen } = useDashboard()
-
-const items = [[{
-  label: 'New mail',
-  icon: 'i-lucide-send',
-  to: '/inbox'
-}, {
-  label: 'New customer',
-  icon: 'i-lucide-user-plus',
-  to: '/customers'
-}]]
-
-const range = shallowRef<Range>({
-  start: sub(new Date(), { days: 14 }),
-  end: new Date()
-})
-const period = ref<Period>('daily')
+])
 </script>
 
 <template>
-  <UDashboardPanel id="home">
-    <template #header>
-      <UDashboardNavbar title="Home" :ui="{ right: 'gap-3' }">
-        <template #leading>
-          <UDashboardSidebarCollapse />
-        </template>
-
-        <template #right>
-          <UTooltip text="Notifications" :shortcuts="['N']">
-            <UButton
-              color="neutral"
-              variant="ghost"
-              square
-              @click="isNotificationsSlideoverOpen = true"
-            >
-              <UChip color="error" inset>
-                <UIcon name="i-lucide-bell" class="size-5 shrink-0" />
-              </UChip>
-            </UButton>
-          </UTooltip>
-
-          <UDropdownMenu :items="items">
-            <UButton icon="i-lucide-plus" size="md" class="rounded-full" />
-          </UDropdownMenu>
-        </template>
-      </UDashboardNavbar>
-
-      <UDashboardToolbar>
-        <template #left>
-          <!-- NOTE: The `-ms-1` class is used to align with the `DashboardSidebarCollapse` button here. -->
-          <HomeDateRangePicker v-model="range" class="-ms-1" />
-
-          <HomePeriodSelect v-model="period" :range="range" />
-        </template>
-      </UDashboardToolbar>
-    </template>
-
-    <template #body>
-      <HomeStats :period="period" :range="range" />
-      <HomeChart :period="period" :range="range" />
-      <HomeSales :period="period" :range="range" />
-    </template>
-  </UDashboardPanel>
+  <UPage>
+    <UPageHero
+      title="Smart Job Application Tracking"
+      description="Track your job applications, optimize your resume with AI, and increase your chances of landing your dream job with PrimeFit's comprehensive application management system."
+      headline="Launch Your Career"
+      orientation="horizontal"
+      :links="links"
+    >
+      <img
+        src="https://ui.nuxt.com/templates/dashboard1.png"
+        alt="PrimeFit dashboard screenshot"
+        class="rounded-lg shadow-2xl ring ring-(--ui-border)"
+      >
+    </UPageHero>
+    <UPageSection
+      title="Streamline Your Job Search"
+      description="PrimeFit provides powerful tools to organize your job search, optimize your applications, and track your progress towards your next career move."
+      :features="features"
+    />
+    <UPricingPlans :plans="plans" />
+  </UPage>
 </template>

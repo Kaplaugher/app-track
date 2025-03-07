@@ -1,4 +1,8 @@
 <script setup lang="ts">
+definePageMeta({
+  layout: 'dashboard'
+})
+
 const links = [[{
   label: 'General',
   icon: 'i-lucide-user',
