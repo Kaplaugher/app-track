@@ -1,14 +1,5 @@
 <script setup lang="ts">
-const route = useRoute()
 
-const items = computed(() => [
-  {
-    label: 'Dashboard',
-    to: '/dashboard',
-    active: route.path.startsWith('/dashboard')
-  }
-
-])
 </script>
 
 <template>
@@ -19,7 +10,7 @@ const items = computed(() => [
       </h1>
     </template>
 
-    <UNavigationMenu :items="items" />
+    <a href="/dashboard">Dashboard</a>
 
     <template #right>
       <UColorModeButton />

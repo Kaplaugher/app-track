@@ -8,8 +8,8 @@ const links = ref([
   {
     label: 'Learn more',
     to: '/getting-started/theme',
-    color: 'primary',
-    variant: 'subtle',
+    color: 'primary' as const,
+    variant: 'subtle' as const,
     trailingIcon: 'i-lucide-arrow-right'
   }
 ])
