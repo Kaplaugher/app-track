@@ -1,20 +1,4 @@
-# Nuxt Dashboard Template with Nuxt UI Pro
 
-Get started with the Nuxt 3 dashboard template with multiple pages, collapsible sidebar, keyboard shortcuts, light & dark more, command palette and more, powered by the [Nuxt UI Pro](https://ui3.nuxt.dev/getting-started/installation/pro/nuxt) UI Library.
-
-[Live Demo](https://dashboard-template.nuxt.dev)
-
-<a href="https://dashboard-template.nuxt.dev" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/57f6d964-a76c-4662-96b2-17622fb18d40">
-    <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/c4c87f77-d10a-4731-9b7c-0cd0ff4821d7">
-    <img alt="Vue Dashboard with Nuxt UI Pro" src="https://github.com/user-attachments/assets/c4c87f77-d10a-4731-9b7c-0cd0ff4821d7">
-  </picture>
-</a>
-
-## Vue Dashboard Template
-
-The dashboard template for Vue is on https://github.com/nuxt-ui-pro/dashboard-vue
 
 ## Quick Start
 
