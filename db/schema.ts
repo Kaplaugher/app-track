@@ -3,9 +3,9 @@ import {
   serial,
   varchar,
   timestamp,
-  decimal,
   text,
-  boolean
+  boolean,
+  integer
 } from 'drizzle-orm/pg-core'
 
 export const applications = pgTable('applications', {
@@ -15,7 +15,7 @@ export const applications = pgTable('applications', {
   date: timestamp('date').notNull().defaultNow(),
   status: varchar('status', { length: 20 }).notNull().default('pending'),
   email: varchar('email', { length: 255 }).notNull(),
-  amount: decimal('amount', { precision: 10, scale: 2 }).notNull(),
+  amount: integer('amount').notNull(),
   notes: text('notes'),
   favorite: boolean('favorite').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),

@@ -1,43 +1,30 @@
-import { ApifyClient } from 'apify-client'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { db } from '../../../db'
 import { applications, type NewApplication } from '../../../db/schema'
 
-// Define types for the scraped data
-interface ScrapedItem {
+// Define types for the request body
+interface ScrapeRequest {
   url: string
-  text?: string
-  metadata?: {
-    title?: string
-    [key: string]: any
-  }
-  [key: string]: any
+  title: string
+  html: string
 }
 
 export default defineEventHandler(async (event) => {
   try {
     // Get the request body
-    const body = await readBody(event)
+    const body = await readBody(event) as ScrapeRequest
 
     // Validate the input
-    if (!body.url) {
+    if (!body.url || !body.html) {
       throw createError({
         statusCode: 400,
-        message: 'URL is required'
+        message: 'URL and HTML content are required'
       })
     }
 
-    // Get API tokens from runtime config
+    // Get API token from runtime config
     const config = useRuntimeConfig()
-    const apifyToken = config.apifyToken
     const geminiApiKey = config.geminiApiKey
-
-    if (!apifyToken) {
-      throw createError({
-        statusCode: 500,
-        message: 'Apify API token is not configured'
-      })
-    }
 
     if (!geminiApiKey) {
       throw createError({
@@ -46,39 +33,40 @@ export default defineEventHandler(async (event) => {
       })
     }
 
-    // Initialize the Apify client
-    const client = new ApifyClient({ token: apifyToken })
-
-    // Prepare the input for the scraper
-    const input = {
-      startUrls: [{ url: body.url }],
-      maxRequestsPerCrawl: body.maxRequests || 10
-      // Add any other parameters needed for the specific actor
-    }
-
-    // Run the web scraper actor
-    const run = await client.actor('apify/website-content-crawler').call(input)
-
-    // Fetch the results from the dataset
-    const { items } = await client.dataset(run.defaultDatasetId).listItems()
-    const scrapedItems = items as ScrapedItem[]
-
-    console.log('Scraped items:', scrapedItems.length)
-
     // Initialize the Gemini model
     const genAI = new GoogleGenerativeAI(geminiApiKey)
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
 
-    // Prepare the content for Gemini
-    const scrapedContent = scrapedItems[0].text
-
     // Create a prompt for Gemini to extract application information
-    const prompt = `
-    Extract the following information from this scraped website content:
+    // Check if the URL is from LinkedIn
+    const isLinkedInJob = body.url.includes('linkedin.com/jobs/')
+      || body.url.includes('linkedin.com/job/')
+      || (body.url.includes('linkedin.com') && body.url.includes('/view/'))
+
+    // Only include LinkedIn instructions if it's a LinkedIn job URL
+    let promptContent = ''
+
+    if (isLinkedInJob) {
+      promptContent = `
+      IMPORTANT: This is a LinkedIn job page. 
+      
+      1. Focus ONLY on the main job content found within elements with class="job-view-layout jobs-details". 
+      2. Ignore any sidebar job recommendations or other LinkedIn content outside this main panel.
+      3. For LinkedIn jobs:
+         - The company name is typically found in the "company-name" or "topcard__org-name-link" elements
+         - The job title is usually in the "top-card-layout__title" element
+         - Salary/compensation may be in elements with "compensation" or "salary" in their class names
+         - Look for contact information in the job description section
+      `
+    }
+
+    // Add the standard extraction instructions
+    promptContent += `
+    Extract the following information from this HTML content:
     1. Company Name
     2. Email Address
     3. Job Title
-    4. Amount - this would be salary (as a positive number)
+    4. Amount - this would be salary, compensation, or pay (as a positive number)
     5. Any additional notes or context
 
     Format the response as a JSON object with these fields:
@@ -91,15 +79,14 @@ export default defineEventHandler(async (event) => {
     }
 
     If you can't find some information, make a reasonable guess based on the context or put unknown.
-    For the email, if not found, use a placeholder like "contact@[companyname].com".
-    For the amount, if not found, use a default value of 1000.
 
-    Here's the content:
-    ${scrapedContent}
+
+    Here's the HTML content:
+    ${body.html}
     `
 
     // Generate content with Gemini
-    const result = await model.generateContent(prompt)
+    const result = await model.generateContent(promptContent)
     const generatedText = result.response.text()
 
     console.log('Gemini response:', generatedText)
@@ -136,12 +123,17 @@ export default defineEventHandler(async (event) => {
     }
 
     // Create a new application with the extracted data
+    const sourceInfo = `Source: ${body.title} (${body.url})`
+    const combinedNotes = extractedData.notes
+      ? `${extractedData.notes}\n\n${sourceInfo}`
+      : sourceInfo
+
     const newApplication: NewApplication = {
       companyName: extractedData.companyName,
       email: extractedData.email,
       status: 'pending',
-      amount: String(extractedData.amount),
-      notes: extractedData.notes || null,
+      amount: extractedData.amount,
+      notes: combinedNotes,
       jobTitle: extractedData.jobTitle || null
     }
 
@@ -151,20 +143,24 @@ export default defineEventHandler(async (event) => {
       .values(newApplication)
       .returning()
 
-    // Return both the scraped data and the created application
+    // Return the extracted data and the created application
     return {
       success: true,
-      scrapedData: scrapedItems,
       extractedData: extractedData,
       createdApplication: applicationResult[0]
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle errors
     console.error('Scraper error:', error)
 
+    const errorMessage = error instanceof Error ? error.message : 'Failed to process the URL'
+    const statusCode = error instanceof Error && 'statusCode' in error
+      ? (error as { statusCode: number }).statusCode
+      : 500
+
     throw createError({
-      statusCode: error.statusCode || 500,
-      message: error.message || 'Failed to process the URL'
+      statusCode,
+      message: errorMessage
     })
   }
 })
