@@ -34,13 +34,56 @@ const statusItems = [
 ]
 
 const toast = useToast()
+const isSubmitting = ref(false)
+
 async function onSubmit(event: FormSubmitEvent<Schema>) {
-  toast.add({
-    title: 'Success',
-    description: `New application for ${event.data.companyName} added`,
-    color: 'success'
-  })
-  open.value = false
+  isSubmitting.value = true
+
+  try {
+    // Send data to the API
+    await $fetch('/api/applications', {
+      method: 'POST',
+      body: {
+        companyName: event.data.companyName,
+        jobTitle: event.data.jobTitle,
+        email: event.data.email,
+        status: event.data.status,
+        amount: event.data.amount,
+        notes: event.data.notes,
+        favorite: event.data.favorite
+      }
+    })
+
+    toast.add({
+      title: 'Success',
+      description: `New application for ${event.data.companyName} added`,
+      color: 'success'
+    })
+
+    // Reset form and refresh data
+    state.companyName = undefined
+    state.jobTitle = undefined
+    state.email = undefined
+    state.amount = undefined
+    state.status = 'pending'
+    state.notes = undefined
+    state.favorite = false
+
+    // Close modal
+    open.value = false
+
+    // Refresh the applications list
+    refreshNuxtData('applications')
+  } catch (error) {
+    toast.add({
+      title: 'Error',
+      description: 'Failed to add application. Please try again.',
+      color: 'error'
+    })
+    console.error('Error adding application:', error)
+  } finally {
+    isSubmitting.value = false
+  }
 }
 </script>
 
@@ -92,6 +135,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
             color="primary"
             variant="solid"
             type="submit"
+            :loading="isSubmitting"
           />
         </div>
       </UForm>

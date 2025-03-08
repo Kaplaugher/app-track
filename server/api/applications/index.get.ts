@@ -1,5 +1,5 @@
-import { applications } from '../../db/schema'
-import { db } from '../../db'
+import { applications } from '../../../db/schema'
+import { db } from '../../../db'
 
 export default defineEventHandler(async (_event) => {
   try {

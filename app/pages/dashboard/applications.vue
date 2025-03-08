@@ -24,6 +24,7 @@ const columnVisibility = ref()
 const rowSelection = ref({ 1: true })
 
 const { data, status } = await useFetch<Application[]>('/api/applications', {
+  key: 'applications',
   lazy: true
 })
 
