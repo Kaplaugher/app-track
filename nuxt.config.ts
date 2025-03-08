@@ -12,6 +12,10 @@ export default defineNuxtConfig({
   },
 
   css: ['~/assets/css/main.css'],
+  runtimeConfig: {
+    apifyToken: process.env.APIFY_TOKEN,
+    geminiApiKey: process.env.GEMINI_API_KEY
+  },
 
   routeRules: {
     '/api/**': {
