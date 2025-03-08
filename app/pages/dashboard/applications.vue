@@ -14,6 +14,7 @@ const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UCheckbox = resolveComponent('UCheckbox')
 
 const toast = useToast()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const table = useTemplateRef<any>('table')
 const deleteModalRef = ref<{ open: boolean } | null>(null)
 
@@ -115,6 +116,7 @@ const getSelectedIds = computed((): number[] => {
   if (!table?.value?.tableApi) return []
 
   return table.value.tableApi.getFilteredSelectedRowModel().rows.map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (row: any) => row.original.id
   )
 })
@@ -332,8 +334,10 @@ const pagination = ref({
             :items="
               table?.tableApi
                 ?.getAllColumns()
-                .filter((column) => column.getCanHide())
-                .map((column) => ({
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .filter((column: any) => column.getCanHide())
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .map((column: any) => ({
                   label: upperFirst(column.id),
                   type: 'checkbox' as const,
                   checked: column.getIsVisible(),
