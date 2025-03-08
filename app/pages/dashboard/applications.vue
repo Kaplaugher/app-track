@@ -14,7 +14,8 @@ const UDropdownMenu = resolveComponent('UDropdownMenu')
 const UCheckbox = resolveComponent('UCheckbox')
 
 const toast = useToast()
-const table = useTemplateRef('table')
+const table = useTemplateRef<any>('table')
+const deleteModalRef = ref<{ open: boolean } | null>(null)
 
 const columnFilters = ref([{
   id: 'companyName',
@@ -27,6 +28,45 @@ const { data, status } = await useFetch<Application[]>('/api/applications', {
   key: 'applications',
   lazy: true
 })
+
+interface DeleteResponse {
+  success: boolean
+  data?: {
+    deleted: number
+    ids: number[]
+  }
+  error?: string
+}
+
+// Function to delete a single application
+async function deleteApplication(id: number) {
+  try {
+    const response = await $fetch<DeleteResponse>('/api/applications/delete', {
+      method: 'POST',
+      body: {
+        id
+      }
+    })
+
+    if (response.success) {
+      toast.add({
+        title: 'Application deleted',
+        description: 'The application has been deleted successfully.'
+      })
+      // Refresh the applications list
+      refreshNuxtData('applications')
+    } else {
+      throw new Error(response.error || 'Failed to delete application')
+    }
+  } catch (error) {
+    console.error('Error deleting application:', error)
+    toast.add({
+      title: 'Error',
+      description: 'Failed to delete application. Please try again.',
+      color: 'error'
+    })
+  }
+}
 
 function getRowItems(row: Row<Application>) {
   return [
@@ -64,14 +104,20 @@ function getRowItems(row: Row<Application>) {
       icon: 'i-lucide-trash',
       color: 'error',
       onSelect() {
-        toast.add({
-          title: 'Application deleted',
-          description: 'The application has been deleted.'
-        })
+        deleteApplication(row.original.id)
       }
     }
   ]
 }
+
+// Get selected row IDs for bulk delete
+const getSelectedIds = computed((): number[] => {
+  if (!table?.value?.tableApi) return []
+
+  return table.value.tableApi.getFilteredSelectedRowModel().rows.map(
+    (row: any) => row.original.id
+  )
+})
 
 const columns: TableColumn<Application>[] = [
   {
@@ -164,8 +210,13 @@ const columns: TableColumn<Application>[] = [
     accessorKey: 'favorite',
     header: 'Favorite',
     cell: ({ row }) => {
+      if (!row.original.favorite) return null
+
       return h('div', { class: 'flex justify-center' }, [
-        row.original.favorite ? h('div', { class: 'i-lucide-star text-amber-500 w-5 h-5' }) : null
+        h(resolveComponent('UIcon'), {
+          name: 'i-lucide-star',
+          class: 'text-amber-500 w-5 h-5 fill-current'
+        })
       ])
     }
   },
@@ -242,13 +293,18 @@ const pagination = ref({
         />
 
         <div class="flex flex-wrap items-center gap-1.5">
-          <ApplicationsDeleteModal :count="table?.tableApi?.getFilteredSelectedRowModel().rows.length">
+          <ApplicationsDeleteModal
+            ref="deleteModalRef"
+            :count="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
+            :selected-ids="getSelectedIds"
+          >
             <UButton
               v-if="table?.tableApi?.getFilteredSelectedRowModel().rows.length"
               label="Delete"
               color="error"
               variant="subtle"
               icon="i-lucide-trash"
+              @click="deleteModalRef && (deleteModalRef.open = true)"
             >
               <template #trailing>
                 <UKbd>
