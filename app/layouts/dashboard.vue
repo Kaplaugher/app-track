@@ -7,18 +7,13 @@ const links = [[{
   icon: 'i-lucide-house',
   to: '/dashboard'
 }, {
-  label: 'Inbox',
-  icon: 'i-lucide-inbox',
-  to: '/dashboard/inbox',
-  badge: '4'
-}, {
   label: 'Applications',
   icon: 'i-lucide-briefcase',
   to: '/dashboard/applications'
 }, {
-  label: 'Customers',
-  icon: 'i-lucide-users',
-  to: '/dashboard/customers'
+  label: 'Resume',
+  icon: 'i-lucide-file-text',
+  to: '/dashboard/resume'
 }, {
   label: 'Settings',
   to: '/dashboard/settings',
