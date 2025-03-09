@@ -16,6 +16,8 @@ const UCheckbox = resolveComponent('UCheckbox')
 const toast = useToast()
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const table = useTemplateRef<any>('table')
+const selectedApplication = ref<Application | null>(null)
+const editModalRef = ref<{ open: boolean } | null>(null)
 const deleteModalRef = ref<{ open: boolean } | null>(null)
 
 const columnFilters = ref([{
@@ -88,6 +90,16 @@ function getRowItems(row: Row<Application>) {
     },
     {
       type: 'separator'
+    },
+    {
+      label: 'Edit application',
+      icon: 'i-lucide-pencil',
+      onSelect() {
+        selectedApplication.value = row.original
+        if (editModalRef.value) {
+          editModalRef.value.open = true
+        }
+      }
     },
     {
       label: 'View application details',
@@ -315,6 +327,11 @@ const pagination = ref({
               </template>
             </UButton>
           </ApplicationsDeleteModal>
+
+          <ApplicationsEditModal
+            ref="editModalRef"
+            :application="selectedApplication"
+          />
 
           <USelect
             v-model="statusFilter"
