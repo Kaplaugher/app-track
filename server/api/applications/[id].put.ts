@@ -1,15 +1,46 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { db } from '../../../db'
 import { applications } from '../../../db/schema'
 
 export default defineEventHandler(async (event) => {
   try {
+    // Get the authenticated user ID from the Clerk context
+    const { userId } = event.context.auth
+
+    // If no user is authenticated, return an error
+    if (!userId) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized: User not signed in'
+      })
+    }
+
     const id = parseInt(event.context.params?.id || '0')
     if (!id) {
       setResponseStatus(event, 400)
       return {
         success: false,
         error: 'Invalid application ID'
+      }
+    }
+
+    // First, check if the application exists and belongs to the user
+    const existingApplication = await db
+      .select()
+      .from(applications)
+      .where(
+        and(
+          eq(applications.id, id),
+          eq(applications.userId, userId)
+        )
+      )
+      .limit(1)
+
+    if (!existingApplication.length) {
+      setResponseStatus(event, 404)
+      return {
+        success: false,
+        error: 'Application not found or you do not have permission to update it'
       }
     }
 
@@ -28,16 +59,13 @@ export default defineEventHandler(async (event) => {
         favorite: body.favorite || false,
         updatedAt: new Date()
       })
-      .where(eq(applications.id, id))
+      .where(
+        and(
+          eq(applications.id, id),
+          eq(applications.userId, userId) // Ensure the user can only update their own applications
+        )
+      )
       .returning()
-
-    if (!result.length) {
-      setResponseStatus(event, 404)
-      return {
-        success: false,
-        error: 'Application not found'
-      }
-    }
 
     return {
       success: true,

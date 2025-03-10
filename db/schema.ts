@@ -10,6 +10,7 @@ import {
 
 export const applications = pgTable('applications', {
   id: serial('id').primaryKey(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
   companyName: varchar('company_name', { length: 255 }).notNull(),
   jobTitle: varchar('job_title', { length: 255 }).notNull(),
   date: timestamp('date').notNull().defaultNow(),

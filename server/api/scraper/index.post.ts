@@ -11,6 +11,17 @@ interface ScrapeRequest {
 
 export default defineEventHandler(async (event) => {
   try {
+    // Get the authenticated user ID from the Clerk context
+    const { userId } = event.context.auth
+
+    // If no user is authenticated, return an error
+    if (!userId) {
+      throw createError({
+        statusCode: 401,
+        message: 'Unauthorized: User not signed in'
+      })
+    }
+
     // Get the request body
     const body = await readBody(event) as ScrapeRequest
 
@@ -129,6 +140,7 @@ export default defineEventHandler(async (event) => {
       : sourceInfo
 
     const newApplication: NewApplication = {
+      userId, // Add the user ID to associate the application with the user
       companyName: extractedData.companyName,
       email: extractedData.email,
       status: 'pending',

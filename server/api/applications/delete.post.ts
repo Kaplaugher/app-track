@@ -1,9 +1,20 @@
-import { inArray } from 'drizzle-orm/expressions'
+import { inArray, and, eq } from 'drizzle-orm/expressions'
 import { db } from '../../../db'
 import { applications } from '../../../db/schema'
 
 export default defineEventHandler(async (event) => {
   try {
+    // Get the authenticated user ID from the Clerk context
+    const { userId } = event.context.auth
+
+    // If no user is authenticated, return an error
+    if (!userId) {
+      throw createError({
+        statusCode: 401,
+        statusMessage: 'Unauthorized: User not signed in'
+      })
+    }
+
     const body = await readBody(event)
 
     // Check if we have an array of IDs or a single ID
@@ -17,10 +28,15 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    // Delete the applications from the database
+    // Delete the applications from the database, but only if they belong to the authenticated user
     const result = await db
       .delete(applications)
-      .where(inArray(applications.id, ids))
+      .where(
+        and(
+          inArray(applications.id, ids),
+          eq(applications.userId, userId) // Ensure the user can only delete their own applications
+        )
+      )
       .returning({ id: applications.id })
 
     return {
