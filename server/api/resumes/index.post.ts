@@ -67,7 +67,7 @@ export default defineEventHandler(async (event) => {
     // Initialize Supabase client
     const config = useRuntimeConfig()
     const supabase = createClient(
-      config.supabaseUrl as string,
+      config.public.supabaseUrl as string,
       config.supabaseServiceKey as string
     )
 

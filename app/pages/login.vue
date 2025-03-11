@@ -1,6 +1,11 @@
 <template>
   <div>
-    hello
+    <SignedOut>
+      <SignInButton />
+    </SignedOut>
+    <SignedIn>
+      <UserButton />
+    </SignedIn>
   </div>
 </template>
 

@@ -1,9 +1,20 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
 
-// Accept the Supabase client as a parameter with proper typing
-export function useSupabaseStorage(supabase: SupabaseClient) {
-  // Remove the initialization since we're receiving the client as a parameter
-  // const supabase = useSupabaseClient()
+// Use Supabase directly instead of accepting it as a parameter
+export function useSupabaseStorage() {
+  // Initialize Supabase client using runtime config
+  const config = useRuntimeConfig()
+
+  // Create Supabase client with proper config
+  // Make sure we have the required config values
+  if (!config.public.supabaseUrl || !config.supabaseServiceKey) {
+    console.error('Supabase URL or service key is missing in runtime config')
+  }
+
+  const supabase = createClient(
+    config.public.supabaseUrl as string,
+    config.supabaseServiceKey as string
+  )
 
   /**
    * Upload a file to Supabase Storage

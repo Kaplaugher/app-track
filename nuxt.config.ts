@@ -4,8 +4,7 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxt/ui-pro',
     '@vueuse/nuxt',
-    '@clerk/nuxt',
-    '@nuxtjs/supabase'
+    '@clerk/nuxt'
   ],
 
   devtools: {
@@ -14,8 +13,15 @@ export default defineNuxtConfig({
 
   css: ['~/assets/css/main.css'],
   runtimeConfig: {
+    // Server-side only environment variables
     apifyToken: process.env.APIFY_TOKEN,
-    geminiApiKey: process.env.GEMINI_API_KEY
+    geminiApiKey: process.env.GEMINI_API_KEY,
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
+
+    // Variables exposed to the client
+    public: {
+      supabaseUrl: process.env.SUPABASE_URL
+    }
   },
 
   routeRules: {
