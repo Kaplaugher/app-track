@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
-import type { Resume } from '~/db/schema'
 
 definePageMeta({
   layout: 'dashboard'
@@ -29,12 +28,78 @@ const resumeState = reactive<Partial<ResumeSchema>>({
   isDefault: false
 })
 
+// Define a type for the resume response
+interface ResumeResponse {
+  success: boolean
+  data?: Resume[]
+  error?: string
+}
+
+// Define a type for a resume
+interface Resume {
+  id: number
+  userId: string
+  title: string
+  description: string | null
+  fileUrl: string
+  fileType: string
+  isDefault: boolean
+  parsedContent: unknown
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Define a type for dropdown menu items
+interface DropdownMenuItem {
+  label?: string
+  icon?: string
+  color?: 'error' | 'primary' | 'secondary' | 'success' | 'info' | 'warning' | 'neutral'
+  to?: string
+  target?: string
+  onSelect?: (e: Event) => void
+}
+
 // Fetch user's resumes
-const { data: resumesResponse, refresh: refreshResumes, pending: loadingResumes } = await useFetch('/api/resumes')
+const { data: resumesResponse, refresh: refreshResumes, pending: loadingResumes } = await useFetch<ResumeResponse>('/api/resumes')
 const resumes = computed(() => {
   if (!resumesResponse.value?.success) return []
-  return resumesResponse.value.data || []
+  return resumesResponse.value?.data || []
 })
+
+// Create dropdown items for each resume
+const getDropdownItems = (resume: Resume): DropdownMenuItem[][] => {
+  const items: DropdownMenuItem[][] = [
+    [
+      {
+        label: 'Download',
+        icon: 'i-lucide-download',
+        to: resume.fileUrl,
+        target: '_blank'
+      }
+    ]
+  ]
+
+  if (!resume.isDefault) {
+    items.push([
+      {
+        label: 'Set as default',
+        icon: 'i-lucide-check',
+        onSelect: () => setAsDefault(resume.id)
+      }
+    ])
+  }
+
+  items.push([
+    {
+      label: 'Delete',
+      icon: 'i-lucide-trash-2',
+      color: 'error',
+      onSelect: () => deleteResume(resume.id)
+    }
+  ])
+
+  return items
+}
 
 // Handle file selection
 function onFileChange(e: Event) {
@@ -80,12 +145,12 @@ async function onSubmit(_event: FormSubmitEvent<ResumeSchema>) {
     // Create form data for the file upload
     const formData = new FormData()
     formData.append('file', resumeFile.value)
-    formData.append('title', resumeState.title)
-    
+    formData.append('title', resumeState.title || '')
+
     if (resumeState.description) {
       formData.append('description', resumeState.description)
     }
-    
+
     formData.append('isDefault', resumeState.isDefault ? 'true' : 'false')
 
     // Upload the resume
@@ -95,7 +160,7 @@ async function onSubmit(_event: FormSubmitEvent<ResumeSchema>) {
     })
 
     if (!response.success) {
-      throw new Error(response.error || 'Failed to upload resume')
+      throw new Error((response as { error?: string }).error || 'Failed to upload resume')
     }
 
     toast.add({
@@ -350,34 +415,25 @@ async function setAsDefault(id: number) {
               </div>
 
               <div class="flex items-center gap-2">
-                <UDropdown>
+                <UDropdownMenu
+                  :items="getDropdownItems(resume)"
+                  mode="click"
+                  :content="{
+                    align: 'end',
+                    side: 'bottom',
+                    sideOffset: 8
+                  }"
+                  :ui="{
+                    content: 'w-48'
+                  }"
+                >
                   <UButton
                     color="neutral"
                     variant="ghost"
                     icon="i-lucide-more-vertical"
                     square
                   />
-
-                  <template #items>
-                    <UDropdownItem
-                      label="Download"
-                      icon="i-lucide-download"
-                      :to="resume.fileUrl"
-                      target="_blank"
-                    />
-                    <UDropdownItem
-                      v-if="!resume.isDefault"
-                      label="Set as default"
-                      icon="i-lucide-check"
-                      @click="setAsDefault(resume.id)"
-                    />
-                    <UDropdownItem
-                      label="Delete"
-                      icon="i-lucide-trash-2"
-                      @click="deleteResume(resume.id)"
-                    />
-                  </template>
-                </UDropdown>
+                </UDropdownMenu>
               </div>
             </div>
           </div>

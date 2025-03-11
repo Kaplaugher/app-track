@@ -17,20 +17,20 @@ const features = ref([
   {
     title: 'Application Tracking',
     description: 'Keep track of all your job applications in one place with our intuitive dashboard.',
-    icon: 'i-lucide-clipboard-list',
-    to: '/features/tracking'
+    icon: 'i-lucide-clipboard-list'
+
   },
   {
     title: 'AI Resume Optimization',
     description: 'Let our AI analyze and optimize your resume for each job application.',
-    icon: 'i-lucide-sparkles',
-    to: '/features/ai-resume'
+    icon: 'i-lucide-sparkles'
+
   },
   {
     title: 'Job Analytics',
     description: 'Get insights into your application process and improve your success rate.',
-    icon: 'i-lucide-bar-chart',
-    to: '/features/analytics'
+    icon: 'i-lucide-bar-chart'
+
   }
 ])
 const plans = ref([
