@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import type { Application } from '../db/schema'
+import type { Application } from '../../db/schema'
 
 interface ResumeContent {
   contact_info: {
