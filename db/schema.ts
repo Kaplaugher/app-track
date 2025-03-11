@@ -5,7 +5,8 @@ import {
   timestamp,
   text,
   boolean,
-  integer
+  integer,
+  json
 } from 'drizzle-orm/pg-core'
 
 export const applications = pgTable('applications', {
@@ -23,5 +24,36 @@ export const applications = pgTable('applications', {
   updatedAt: timestamp('updated_at').notNull().defaultNow()
 })
 
+export const resumes = pgTable('resumes', {
+  id: serial('id').primaryKey(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  fileUrl: varchar('file_url', { length: 512 }).notNull(), // Supabase storage URL
+  fileType: varchar('file_type', { length: 50 }).notNull(), // pdf, docx, etc.
+  isDefault: boolean('is_default').notNull().default(false),
+  parsedContent: json('parsed_content'), // Structured content for RAG/customization
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+})
+
+export const customResumes = pgTable('custom_resumes', {
+  id: serial('id').primaryKey(),
+  userId: varchar('user_id', { length: 255 }).notNull(),
+  originalResumeId: integer('original_resume_id').notNull(), // Reference to the original resume
+  applicationId: integer('application_id').notNull(), // Reference to the job application
+  title: varchar('title', { length: 255 }).notNull(),
+  fileUrl: varchar('file_url', { length: 512 }).notNull(), // Supabase storage URL
+  customizations: json('customizations'), // What changes were made
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow()
+})
+
 export type Application = typeof applications.$inferSelect
 export type NewApplication = typeof applications.$inferInsert
+
+export type Resume = typeof resumes.$inferSelect
+export type NewResume = typeof resumes.$inferInsert
+
+export type CustomResume = typeof customResumes.$inferSelect
+export type NewCustomResume = typeof customResumes.$inferInsert
