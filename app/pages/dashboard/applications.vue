@@ -19,6 +19,7 @@ const table = useTemplateRef<any>('table')
 const selectedApplication = ref<Application | null>(null)
 const editModalRef = ref<{ open: boolean } | null>(null)
 const deleteModalRef = ref<{ open: boolean } | null>(null)
+const customResumeModalRef = ref<{ open: boolean } | null>(null)
 
 const columnFilters = ref([{
   id: 'companyName',
@@ -108,6 +109,16 @@ function getRowItems(row: Row<Application>) {
     {
       label: 'View application notes',
       icon: 'i-lucide-file-text'
+    },
+    {
+      label: 'Generate Custom Resume',
+      icon: 'i-lucide-file-plus',
+      onSelect() {
+        selectedApplication.value = row.original
+        if (customResumeModalRef.value) {
+          customResumeModalRef.value.open = true
+        }
+      }
     },
     {
       type: 'separator'
@@ -330,6 +341,11 @@ const pagination = ref({
 
           <ApplicationsEditModal
             ref="editModalRef"
+            :application="selectedApplication"
+          />
+
+          <ApplicationsCustomResumeModal
+            ref="customResumeModalRef"
             :application="selectedApplication"
           />
 

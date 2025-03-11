@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
+import type { Resume } from '~/db/schema'
 
 definePageMeta({
   layout: 'dashboard'
@@ -26,6 +27,13 @@ const resumeState = reactive<Partial<ResumeSchema>>({
   title: '',
   description: '',
   isDefault: false
+})
+
+// Fetch user's resumes
+const { data: resumesResponse, refresh: refreshResumes, pending: loadingResumes } = await useFetch('/api/resumes')
+const resumes = computed(() => {
+  if (!resumesResponse.value?.success) return []
+  return resumesResponse.value.data || []
 })
 
 // Handle file selection
@@ -69,9 +77,26 @@ async function onSubmit(_event: FormSubmitEvent<ResumeSchema>) {
   isUploading.value = true
 
   try {
-    // In a real implementation, you would upload the file to a server here
-    // For now, we'll just simulate a successful upload
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    // Create form data for the file upload
+    const formData = new FormData()
+    formData.append('file', resumeFile.value)
+    formData.append('title', resumeState.title)
+    
+    if (resumeState.description) {
+      formData.append('description', resumeState.description)
+    }
+    
+    formData.append('isDefault', resumeState.isDefault ? 'true' : 'false')
+
+    // Upload the resume
+    const response = await $fetch('/api/resumes', {
+      method: 'POST',
+      body: formData
+    })
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to upload resume')
+    }
 
     toast.add({
       title: 'Success',
@@ -90,10 +115,14 @@ async function onSubmit(_event: FormSubmitEvent<ResumeSchema>) {
     if (fileRef.value) {
       fileRef.value.value = ''
     }
-  } catch {
+
+    // Refresh the resumes list
+    refreshResumes()
+  } catch (error) {
+    console.error('Error uploading resume:', error)
     toast.add({
       title: 'Error',
-      description: 'Failed to upload resume. Please try again.',
+      description: error instanceof Error ? error.message : 'Failed to upload resume. Please try again.',
       color: 'error'
     })
   } finally {
@@ -101,34 +130,62 @@ async function onSubmit(_event: FormSubmitEvent<ResumeSchema>) {
   }
 }
 
-// Mock data for existing resumes
-const existingResumes = ref([
-  { id: 1, title: 'Software Engineer Resume', description: 'For tech positions', isDefault: true, date: '2023-12-15' },
-  { id: 2, title: 'Product Manager Resume', description: 'For product roles', isDefault: false, date: '2023-11-20' }
-])
-
 // Function to delete a resume
-function deleteResume(id: number) {
-  existingResumes.value = existingResumes.value.filter(resume => resume.id !== id)
-  toast.add({
-    title: 'Deleted',
-    description: 'Resume has been removed',
-    color: 'info'
-  })
+async function deleteResume(id: number) {
+  try {
+    const response = await $fetch(`/api/resumes/${id}`, {
+      method: 'DELETE'
+    })
+
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete resume')
+    }
+
+    toast.add({
+      title: 'Deleted',
+      description: 'Resume has been removed',
+      color: 'info'
+    })
+
+    // Refresh the resumes list
+    refreshResumes()
+  } catch (error) {
+    console.error('Error deleting resume:', error)
+    toast.add({
+      title: 'Error',
+      description: error instanceof Error ? error.message : 'Failed to delete resume',
+      color: 'error'
+    })
+  }
 }
 
 // Function to set a resume as default
-function setAsDefault(id: number) {
-  existingResumes.value = existingResumes.value.map(resume => ({
-    ...resume,
-    isDefault: resume.id === id
-  }))
+async function setAsDefault(id: number) {
+  try {
+    const response = await $fetch(`/api/resumes/${id}/default`, {
+      method: 'PUT'
+    })
 
-  toast.add({
-    title: 'Updated',
-    description: 'Default resume has been updated',
-    color: 'success'
-  })
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to update resume')
+    }
+
+    toast.add({
+      title: 'Updated',
+      description: 'Default resume has been updated',
+      color: 'success'
+    })
+
+    // Refresh the resumes list
+    refreshResumes()
+  } catch (error) {
+    console.error('Error setting default resume:', error)
+    toast.add({
+      title: 'Error',
+      description: error instanceof Error ? error.message : 'Failed to update resume',
+      color: 'error'
+    })
+  }
 }
 </script>
 
@@ -249,7 +306,14 @@ function setAsDefault(id: number) {
             </div>
           </template>
 
-          <div v-if="existingResumes.length === 0" class="py-8 text-center">
+          <div v-if="loadingResumes" class="py-8 text-center">
+            <UIcon name="i-lucide-loader-2" class="animate-spin size-12 mx-auto mb-2 text-gray-400" />
+            <p class="text-gray-600 dark:text-gray-400">
+              Loading resumes...
+            </p>
+          </div>
+
+          <div v-else-if="resumes.length === 0" class="py-8 text-center">
             <UIcon name="i-lucide-file-question" class="size-12 mx-auto mb-2 text-gray-400" />
             <p class="text-gray-600 dark:text-gray-400">
               No resumes uploaded yet
@@ -258,7 +322,7 @@ function setAsDefault(id: number) {
 
           <div v-else class="space-y-4">
             <div
-              v-for="resume in existingResumes"
+              v-for="resume in resumes"
               :key="resume.id"
               class="p-4 border rounded-lg flex items-start justify-between gap-4"
             >
@@ -280,7 +344,7 @@ function setAsDefault(id: number) {
                     {{ resume.description }}
                   </p>
                   <p class="text-xs text-gray-500 mt-1">
-                    Uploaded: {{ resume.date }}
+                    Uploaded: {{ new Date(resume.createdAt).toLocaleDateString() }}
                   </p>
                 </div>
               </div>
@@ -298,6 +362,8 @@ function setAsDefault(id: number) {
                     <UDropdownItem
                       label="Download"
                       icon="i-lucide-download"
+                      :to="resume.fileUrl"
+                      target="_blank"
                     />
                     <UDropdownItem
                       v-if="!resume.isDefault"

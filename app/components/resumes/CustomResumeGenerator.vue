@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Resume } from '../db/schema'
+import type { Resume } from '../../../db/schema'
 
 interface ApiResponse<T> {
   success: boolean
@@ -125,19 +125,16 @@ async function generateCustomResume() {
           Select a resume to customize for this job application. We'll analyze the job details and tailor your resume to highlight relevant skills and experience.
         </p>
 
-        <UFormGroup label="Select Resume" required>
-          <URadioGroup v-model="selectedResumeId">
-            <div class="space-y-2">
-              <URadio
-                v-for="resume in resumes"
-                :key="resume.id"
-                :value="resume.id"
-                :label="resume.title"
-                :help="resume.isDefault ? 'Default resume' : undefined"
-              />
-            </div>
-          </URadioGroup>
-        </UFormGroup>
+        <UFormField label="Select Resume" required>
+          <URadioGroup
+            v-model="selectedResumeId"
+            :items="resumes.map(resume => ({
+              value: resume.id,
+              label: resume.title,
+              help: resume.isDefault ? 'Default resume' : undefined
+            }))"
+          />
+        </UFormField>
 
         <div class="flex justify-end">
           <UButton
