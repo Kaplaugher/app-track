@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import type { Resume } from '../../../db/schema'
+import type { Resume, Application } from '../../../db/schema'
 
 interface ApiResponse<T> {
   success: boolean
   data?: T
   error?: string
-}
-
-interface ResumesResponse {
-  data: Resume[]
 }
 
 interface CustomResumeResponse {
@@ -35,11 +31,18 @@ const isGenerating = ref(false)
 const customResumeUrl = ref<string | null>(null)
 const selectedResumeId = ref<number | null>(null)
 
+// Fetch application details
+const { data: applicationResponse, pending: loadingApplication } = await useFetch<ApiResponse<{ application: Application }>>(`/api/applications/${props.applicationId}`)
+const application = computed(() => applicationResponse.value?.data?.application || null)
+
 // Fetch user's resumes
-const { data: resumesResponse, pending: loadingResumes, error: resumesError } = await useFetch<ApiResponse<ResumesResponse>>('/api/resumes')
+const { data: resumesResponse, pending: loadingResumes, error: resumesError } = await useFetch<ApiResponse<Resume[]>>('/api/resumes')
 const resumes = computed(() => {
+  console.log('Resume response (standalone):', resumesResponse.value)
   if (!resumesResponse.value?.success) return []
-  return resumesResponse.value?.data?.data || []
+
+  const data = resumesResponse.value?.data
+  return Array.isArray(data) ? data : []
 })
 
 // Handle resume generation
@@ -77,10 +80,19 @@ async function generateCustomResume() {
     }
   } catch (error) {
     console.error('Error generating custom resume:', error)
+
+    // Provide more specific error messages based on the error
+    let errorMessage = 'Failed to generate custom resume'
+
+    if (error instanceof Error) {
+      errorMessage = error.message
+    }
+
     toast.add({
       title: 'Error',
-      description: error instanceof Error ? error.message : 'Failed to generate custom resume',
-      color: 'error'
+      description: errorMessage,
+      color: 'error',
+      icon: 'i-lucide-alert-triangle'
     })
   } finally {
     isGenerating.value = false
@@ -99,7 +111,7 @@ async function generateCustomResume() {
         </div>
       </template>
 
-      <div v-if="loadingResumes" class="flex justify-center py-4">
+      <div v-if="loadingApplication || loadingResumes" class="flex justify-center py-4">
         <UIcon name="i-lucide-loader-2" class="animate-spin h-6 w-6 text-gray-500" />
       </div>
 
@@ -121,8 +133,44 @@ async function generateCustomResume() {
       </div>
 
       <div v-else class="space-y-4">
+        <div v-if="application" class="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg mb-4">
+          <h4 class="font-medium mb-2">
+            Application Details
+          </h4>
+          <div class="grid grid-cols-2 gap-2 text-sm">
+            <div>
+              <span class="text-gray-500">Company:</span>
+              <span class="ml-2 font-medium">{{ application.companyName }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500">Position:</span>
+              <span class="ml-2 font-medium">{{ application.jobTitle }}</span>
+            </div>
+            <div v-if="application.notes" class="col-span-2">
+              <span class="text-gray-500 flex items-center gap-1">Notes
+                <UTooltip text="These notes will be used to optimize your resume">
+                  <UIcon name="i-lucide-info" class="h-4 w-4 text-primary" />
+                </UTooltip>
+              </span>
+              <p class="mt-1 text-sm p-2 bg-primary-50 dark:bg-primary-950 border-l-2 border-primary rounded">
+                {{ application.notes }}
+              </p>
+            </div>
+            <div v-else class="col-span-2 mt-2">
+              <UAlert
+                title="No Notes Available"
+                description="Adding job description or keywords in the notes field will help optimize your resume better."
+                color="warning"
+                variant="soft"
+                icon="i-lucide-alert-triangle"
+              />
+            </div>
+          </div>
+        </div>
+
         <p class="text-sm text-gray-600 dark:text-gray-400">
           Select a resume to customize for this job application. We'll analyze the job details and tailor your resume to highlight relevant skills and experience.
+          <span v-if="application" class="font-medium block mt-1">The notes field above is crucial for optimization - it should contain job requirements or keywords.</span>
         </p>
 
         <UFormField label="Select Resume" required>

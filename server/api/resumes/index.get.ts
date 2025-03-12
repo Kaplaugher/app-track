@@ -31,6 +31,7 @@ export default defineEventHandler(async (event) => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     })
 
+    console.log('Fetched resumes:', sortedResult.length, 'resumes for user', userId)
     return {
       success: true,
       data: sortedResult
