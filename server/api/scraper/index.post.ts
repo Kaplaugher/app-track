@@ -68,6 +68,8 @@ export default defineEventHandler(async (event) => {
          - The job title is usually in the "top-card-layout__title" element
          - Salary/compensation may be in elements with "compensation" or "salary" in their class names
          - Look for contact information in the job description section
+         - Pay special attention to the "skills" section and any bullet points in the job description that list requirements
+         - Look for sections titled "Requirements", "Qualifications", "Skills", or "What You'll Need"
       `
     }
 
@@ -78,7 +80,7 @@ export default defineEventHandler(async (event) => {
     2. Email Address
     3. Job Title
     4. Amount - this would be salary, compensation, or pay (as a positive number)
-    5. Any additional notes or context
+    5. Keywords and Skills - Extract important keywords, technologies, skills, and qualifications mentioned in the job description that would be valuable for customizing a resume. Focus on technical skills, soft skills, experience requirements, and any specific qualifications mentioned.
 
     Format the response as a JSON object with these fields:
     {
@@ -86,8 +88,18 @@ export default defineEventHandler(async (event) => {
       "email": string,
       "jobTitle": string,
       "amount": number,
+      "keywords": string[],
       "notes": string
     }
+
+    For the "keywords" field, provide an array of specific skills, technologies, and qualifications mentioned in the job.
+    
+    For the "notes" field, provide strategic advice on how to customize a resume for this specific job based on the keywords and requirements identified. Include:
+    1. Which skills and experiences to emphasize
+    2. How to align past achievements with the job requirements
+    3. Any specific certifications or qualifications that should be highlighted
+    4. Suggestions for resume sections that would be particularly relevant
+    5. Industry-specific terminology that should be incorporated
 
     If you can't find some information, make a reasonable guess based on the context or put unknown.
 
@@ -133,11 +145,24 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    // Ensure keywords is an array
+    if (!extractedData.keywords || !Array.isArray(extractedData.keywords)) {
+      extractedData.keywords = []
+    }
+
     // Create a new application with the extracted data
     const sourceInfo = `Source: ${body.title} (${body.url})`
-    const combinedNotes = extractedData.notes
-      ? `${extractedData.notes}\n\n${sourceInfo}`
-      : sourceInfo
+
+    // Format keywords as a bulleted list if available
+    let keywordsText = ''
+    if (extractedData.keywords && Array.isArray(extractedData.keywords) && extractedData.keywords.length > 0) {
+      keywordsText = '\n\n## Key Skills/Technologies:\n• ' + extractedData.keywords.join('\n• ')
+    }
+
+    // Format the notes with clear sections
+    const resumeAdvice = extractedData.notes ? `\n\n## Resume Customization Advice:\n${extractedData.notes}` : ''
+
+    const combinedNotes = `# Job Application Notes\n\n${resumeAdvice}${keywordsText}\n\n## Source Information:\n${sourceInfo}`
 
     const newApplication: NewApplication = {
       userId, // Add the user ID to associate the application with the user
