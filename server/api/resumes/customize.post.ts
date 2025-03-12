@@ -4,6 +4,31 @@ import { eq } from 'drizzle-orm'
 import { db } from '../../../db'
 import { resumes, applications, customResumes, type Application, type Resume } from '../../../db/schema'
 
+// Define interface for parsed resume content
+interface ParsedResumeContent {
+  contact_info: {
+    name: string
+    email: string
+    phone: string
+    location: string
+  }
+  summary: string
+  skills: string[]
+  experience: Array<{
+    company: string
+    title: string
+    dates: string
+    bullets: string[]
+  }>
+  education: Array<{
+    school: string
+    degree: string
+    field: string
+    dates: string
+  }>
+  customizations?: string[]
+}
+
 export default defineEventHandler(async (event) => {
   try {
     // Get the authenticated user ID from the Clerk context
@@ -58,73 +83,253 @@ export default defineEventHandler(async (event) => {
     )
 
     // If the resume content hasn't been parsed yet, we need to parse it
-    let parsedContent = resume.parsedContent
+    let parsedContent = resume.parsedContent as ParsedResumeContent | null
 
     if (!parsedContent) {
       console.log('Resume needs parsing, fileUrl:', resume.fileUrl)
 
-      // Instead of trying to download and parse the file, we'll use a simulated content
-      // This is a pragmatic approach since the actual parsing would require specialized libraries
-      console.log('Using simulated resume content for', resume.title)
+      // Initialize the Gemini model for parsing
+      const geminiApiKey = config.geminiApiKey
 
-      parsedContent = {
-        contact_info: {
-          name: 'John Doe',
-          email: 'john.doe@example.com',
-          phone: '555-123-4567',
-          location: 'New York, NY'
-        },
-        summary: 'Experienced professional with skills in software development, project management, and team leadership. Proven track record of delivering high-quality solutions on time and within budget.',
-        skills: [
-          'JavaScript', 'TypeScript', 'React', 'Vue.js', 'Node.js',
-          'HTML/CSS', 'Git', 'Agile/Scrum', 'Project Management',
-          'Team Leadership', 'Problem Solving', 'Communication'
-        ],
-        experience: [
-          {
-            company: 'Tech Solutions Inc.',
-            title: 'Senior Developer',
-            dates: '2020-Present',
-            bullets: [
-              'Led development of key features for enterprise applications',
-              'Improved application performance by 30% through code optimization',
-              'Mentored junior developers and conducted code reviews',
-              'Collaborated with cross-functional teams to deliver projects on schedule'
-            ]
-          },
-          {
-            company: 'Digital Innovations LLC',
-            title: 'Full Stack Developer',
-            dates: '2017-2020',
-            bullets: [
-              'Developed responsive web applications using React and Node.js',
-              'Implemented RESTful APIs and database integrations',
-              'Participated in agile development processes',
-              'Reduced bug count by 40% through improved testing procedures'
-            ]
-          }
-        ],
-        education: [
-          {
-            school: 'University of Technology',
-            degree: 'Bachelor',
-            field: 'Computer Science',
-            dates: '2013-2017'
-          }
-        ]
+      if (!geminiApiKey) {
+        throw createError({
+          statusCode: 500,
+          message: 'Gemini API key is not configured'
+        })
       }
 
-      // Update the resume record with the simulated parsed content
+      // Initialize the Gemini model
+      const genAI = new GoogleGenerativeAI(geminiApiKey)
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
+
       try {
+        // Fetch the resume content from the storage URL
+        const response = await fetch(resume.fileUrl)
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch resume: ${response.statusText}`)
+        }
+
+        // Determine file type from URL or content
+        const fileExtension = resume.fileUrl.split('.').pop()?.toLowerCase() || ''
+        let resumeContent = ''
+
+        // Handle different file types
+        if (fileExtension === 'pdf') {
+          // For PDFs, we'll tell Gemini it's a PDF and provide the URL directly
+          resumeContent = `This is a PDF resume available at: ${resume.fileUrl}`
+        } else if (fileExtension === 'docx' || fileExtension === 'doc') {
+          // For Word documents, we'll tell Gemini it's a Word document and provide the URL directly
+          resumeContent = `This is a Word document resume available at: ${resume.fileUrl}`
+        } else {
+          // For text-based files (HTML, TXT, etc.), get the content as text
+          resumeContent = await response.text()
+        }
+
+        // Create a parsing prompt based on the file type
+        let parsingPrompt = `
+          You are a professional resume parser. Your task is to extract structured information from the following resume.
+          
+          Resume Content:
+          ${resumeContent}
+          
+          Parse this resume and extract the following information in a structured JSON format:
+          1. Contact information (name, email, phone, location)
+          2. Professional summary or objective
+          3. Skills (as an array of strings)
+          4. Work experience (company, title, dates, and bullet points of responsibilities/achievements)
+          5. Education (school, degree, field of study, dates)
+          
+          Return ONLY valid JSON with the following structure:
+          {
+            "contact_info": {
+              "name": "",
+              "email": "",
+              "phone": "",
+              "location": ""
+            },
+            "summary": "",
+            "skills": ["skill1", "skill2", ...],
+            "experience": [
+              {
+                "company": "",
+                "title": "",
+                "dates": "",
+                "bullets": ["bullet1", "bullet2", ...]
+              }
+            ],
+            "education": [
+              {
+                "school": "",
+                "degree": "",
+                "field": "",
+                "dates": ""
+              }
+            ]
+          }
+          
+          Return ONLY valid JSON without any explanation or markdown formatting.
+        `
+
+        // If it's a PDF or Word document, use a different prompt
+        if (fileExtension === 'pdf') {
+          parsingPrompt = `
+            You are a professional resume parser. Your task is to extract structured information from a PDF resume.
+            
+            I'm providing you with a URL to a PDF resume: ${resume.fileUrl}
+            
+            You have the ability to understand and extract information from this PDF. Please analyze the PDF content and extract the following information in a structured JSON format:
+            1. Contact information (name, email, phone, location)
+            2. Professional summary or objective
+            3. Skills (as an array of strings)
+            4. Work experience (company, title, dates, and bullet points of responsibilities/achievements)
+            5. Education (school, degree, field of study, dates)
+            
+            Return ONLY valid JSON with the following structure:
+            {
+              "contact_info": {
+                "name": "",
+                "email": "",
+                "phone": "",
+                "location": ""
+              },
+              "summary": "",
+              "skills": ["skill1", "skill2", ...],
+              "experience": [
+                {
+                  "company": "",
+                  "title": "",
+                  "dates": "",
+                  "bullets": ["bullet1", "bullet2", ...]
+                }
+              ],
+              "education": [
+                {
+                  "school": "",
+                  "degree": "",
+                  "field": "",
+                  "dates": ""
+                }
+              ]
+            }
+            
+            Return ONLY valid JSON without any explanation or markdown formatting.
+          `
+        } else if (fileExtension === 'docx' || fileExtension === 'doc') {
+          parsingPrompt = `
+            You are a professional resume parser. Your task is to extract structured information from a Word document resume.
+            
+            I'm providing you with a URL to a Word document resume: ${resume.fileUrl}
+            
+            You have the ability to understand and extract information from this document. Please analyze the document content and extract the following information in a structured JSON format:
+            1. Contact information (name, email, phone, location)
+            2. Professional summary or objective
+            3. Skills (as an array of strings)
+            4. Work experience (company, title, dates, and bullet points of responsibilities/achievements)
+            5. Education (school, degree, field of study, dates)
+            
+            Return ONLY valid JSON with the following structure:
+            {
+              "contact_info": {
+                "name": "",
+                "email": "",
+                "phone": "",
+                "location": ""
+              },
+              "summary": "",
+              "skills": ["skill1", "skill2", ...],
+              "experience": [
+                {
+                  "company": "",
+                  "title": "",
+                  "dates": "",
+                  "bullets": ["bullet1", "bullet2", ...]
+                }
+              ],
+              "education": [
+                {
+                  "school": "",
+                  "degree": "",
+                  "field": "",
+                  "dates": ""
+                }
+              ]
+            }
+            
+            Return ONLY valid JSON without any explanation or markdown formatting.
+          `
+        }
+
+        // Use Gemini to parse the resume
+        const parsingResult = await model.generateContent(parsingPrompt)
+        const parsingResponse = await parsingResult.response
+        const parsedText = parsingResponse.text()
+
+        // Extract the JSON from the response
+        const jsonMatch = parsedText.match(/```json\n([\s\S]*?)\n```/)
+          || parsedText.match(/```\n([\s\S]*?)\n```/)
+          || [null, parsedText]
+
+        const jsonContent = jsonMatch[1]
+
+        // Parse the JSON
+        parsedContent = JSON.parse(jsonContent) as ParsedResumeContent
+
+        // Validate the parsed content structure
+        if (!parsedContent.contact_info || !parsedContent.skills || !parsedContent.experience) {
+          throw new Error('Parsed resume is missing required fields')
+        }
+
+        // Update the resume record with the parsed content
         await db
           .update(resumes)
           .set({ parsedContent })
           .where(eq(resumes.id, resumeId))
 
-        console.log('Updated resume with simulated parsed content')
-      } catch (dbError) {
-        console.error('Error updating resume with parsed content:', dbError)
-        // Continue even if the update fails
+        console.log('Updated resume with parsed content from actual file')
+      } catch (parseError) {
+        console.error('Error parsing resume:', parseError)
+
+        // If parsing fails, use a simplified structure as fallback
+        parsedContent = {
+          contact_info: {
+            name: resume.title || 'Unnamed',
+            email: 'Not available',
+            phone: 'Not available',
+            location: 'Not available'
+          },
+          summary: 'Unable to parse resume summary.',
+          skills: ['Unable to parse skills'],
+          experience: [
+            {
+              company: 'Unable to parse experience',
+              title: 'Unknown',
+              dates: 'Unknown',
+              bullets: ['Unable to parse experience details']
+            }
+          ],
+          education: [
+            {
+              school: 'Unable to parse education',
+              degree: 'Unknown',
+              field: 'Unknown',
+              dates: 'Unknown'
+            }
+          ]
+        } as ParsedResumeContent
+
+        // Still try to update the resume with the fallback content
+        try {
+          await db
+            .update(resumes)
+            .set({ parsedContent })
+            .where(eq(resumes.id, resumeId))
+
+          console.log('Updated resume with fallback parsed content')
+        } catch (dbError) {
+          console.error('Error updating resume with fallback parsed content:', dbError)
+          // Continue even if the update fails
+        }
       }
     }
 
@@ -180,22 +385,7 @@ export default defineEventHandler(async (event) => {
     const jsonContent = jsonMatch[1]
 
     // Parse the JSON
-    const customizedContent = JSON.parse(jsonContent)
-
-    // Define interfaces for the experience and education items
-    interface ExperienceItem {
-      company: string
-      title: string
-      dates: string
-      bullets: string[]
-    }
-
-    interface EducationItem {
-      school: string
-      degree: string
-      field: string
-      dates: string
-    }
+    const customizedContent = JSON.parse(jsonContent) as ParsedResumeContent
 
     // Generate HTML for the customized resume
     const html = `
@@ -231,7 +421,7 @@ export default defineEventHandler(async (event) => {
           
           <div class="section">
             <h2 class="section-title">Experience</h2>
-            ${customizedContent.experience.map((exp: ExperienceItem) => `
+            ${customizedContent.experience.map(exp => `
               <div class="experience-item">
                 <div class="company-title">
                   <strong>${exp.company}</strong>
@@ -247,7 +437,7 @@ export default defineEventHandler(async (event) => {
           
           <div class="section">
             <h2 class="section-title">Education</h2>
-            ${customizedContent.education.map((edu: EducationItem) => `
+            ${customizedContent.education.map(edu => `
               <div class="education-item">
                 <div class="company-title">
                   <strong>${edu.school}</strong>
