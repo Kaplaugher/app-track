@@ -257,7 +257,9 @@ async function deleteResume(id: number) {
     })
 
     if (!response.success) {
-      throw new Error(response.error || 'Failed to delete resume')
+      // Use type assertion to access the error property
+      const errorResponse = response as { success: boolean, error?: string }
+      throw new Error(errorResponse.error || 'Failed to delete resume')
     }
 
     toast.add({
@@ -317,7 +319,9 @@ async function setAsDefault(id: number) {
     })
 
     if (!response.success) {
-      throw new Error(response.error || 'Failed to update resume')
+      // Use type assertion to access the error property
+      const errorResponse = response as { success: boolean, error?: string }
+      throw new Error(errorResponse.error || 'Failed to update resume')
     }
 
     toast.add({
