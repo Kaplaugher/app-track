@@ -421,7 +421,7 @@ async function processFileData(
       optimizedResumePreview: optimizedText.substring(0, 200) + '...',
       htmlUrl: htmlUrl,
       customResumeId,
-      instructions: 'Your optimized resume will open in our resume viewer. You can use the "Save as PDF" button in the viewer to download a PDF version.'
+      instructions: 'Your optimized resume will open in our resume viewer. You can use your browser\'s print function to save as PDF if needed.'
     }
   }
 }
@@ -435,6 +435,7 @@ function generateResumeHtml(resumeText: string, application: Application): strin
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
       <title>Optimized Resume for ${application.companyName}</title>
       <style>
         body {
@@ -509,31 +510,6 @@ function generateResumeHtml(resumeText: string, application: Application): strin
         li {
           margin-bottom: 5px;
         }
-        .footer {
-          margin-top: 30px;
-          text-align: center;
-          font-size: 12px;
-          color: #7f8c8d;
-          border-top: 1px solid #eee;
-          padding-top: 10px;
-        }
-        .print-button {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          background-color: #3498db;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-          transition: background-color 0.3s;
-        }
-        .print-button:hover {
-          background-color: #2980b9;
-        }
         @media print {
           body {
             padding: 0;
@@ -541,31 +517,13 @@ function generateResumeHtml(resumeText: string, application: Application): strin
           @page {
             margin: 0.5in;
           }
-          .footer {
-            position: fixed;
-            bottom: 0;
-            width: 100%;
-          }
-          .print-button {
-            display: none;
-          }
         }
       </style>
     </head>
     <body>
-      <button class="print-button" onclick="window.print()">Save as PDF</button>
       <div class="resume-content">
         ${resumeText}
       </div>
-      <div class="footer">
-        <p>Optimized for ${application.companyName} - ${application.jobTitle}</p>
-      </div>
-      <script>
-        // Add a message when the page loads
-        window.onload = function() {
-          console.log('Resume loaded. Click "Save as PDF" to save or print this resume.');
-        };
-      </script>
     </body>
     </html>
   `
