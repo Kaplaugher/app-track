@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { eq } from 'drizzle-orm'
 import { db } from '../../../db'
-import { resumes, applications, type Application, type Resume } from '../../../db/schema'
+import { resumes, applications, customResumes, type Application, type Resume } from '../../../db/schema'
 // Import PDFExtract dynamically to avoid build issues
 
 export default defineEventHandler(async (event) => {
@@ -143,7 +143,7 @@ export default defineEventHandler(async (event) => {
 
           if (secondAttemptData) {
             console.log('Second download attempt succeeded with filename')
-            return processFileData(secondAttemptData, application, resume.fileUrl, config)
+            return processFileData(secondAttemptData, application, resume.fileUrl, userId, resumeId, config)
           }
         }
 
@@ -155,7 +155,7 @@ export default defineEventHandler(async (event) => {
         throw new Error('No file data received from storage')
       }
 
-      return processFileData(fileData, application, resume.fileUrl, config)
+      return processFileData(fileData, application, resume.fileUrl, userId, resumeId, config)
     } catch (storageError) {
       console.error('Storage operation error:', storageError)
       console.error('Error details:', JSON.stringify(storageError, null, 2))
@@ -201,6 +201,8 @@ async function processFileData(
   fileData: Blob,
   application: Application,
   originalFilePath: string,
+  userId: string,
+  resumeId: number,
   config: ReturnType<typeof useRuntimeConfig>
 ) {
   console.log('Successfully downloaded resume file:', {
@@ -343,8 +345,56 @@ async function processFileData(
     3. Emphasizing achievements that align with the job requirements
     4. Using keywords from the job description where appropriate
     
-    Return an optimized version of the resume that would make the candidate more appealing for this specific role.
-    Format the resume in a clean, professional way, fixing any formatting issues from the PDF extraction.
+    Return an optimized version of the resume with the following HTML structure:
+    
+    <div class="contact-info">
+      <h1>[Full Name]</h1>
+      <p>[Email] | [Phone] | [Location]</p>
+    </div>
+    
+    <div class="section">
+      <h2>Professional Summary</h2>
+      <p>[Optimized professional summary]</p>
+    </div>
+    
+    <div class="section">
+      <h2>Skills</h2>
+      <div class="skills">
+        <span class="skill">[Skill 1]</span>
+        <span class="skill">[Skill 2]</span>
+        <!-- More skills -->
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>Experience</h2>
+      <div class="experience-item">
+        <div class="job-header">
+          <span class="job-title">[Job Title]</span> at <span class="company">[Company]</span>
+          <span class="dates">[Dates]</span>
+        </div>
+        <ul>
+          <li>[Achievement/Responsibility 1]</li>
+          <li>[Achievement/Responsibility 2]</li>
+          <!-- More bullet points -->
+        </ul>
+      </div>
+      <!-- More experience items -->
+    </div>
+    
+    <div class="section">
+      <h2>Education</h2>
+      <div class="education-item">
+        <div class="education-header">
+          <span class="degree">[Degree]</span> in <span class="field">[Field]</span>
+          <span class="school">[School]</span>
+          <span class="dates">[Dates]</span>
+        </div>
+      </div>
+      <!-- More education items -->
+    </div>
+    
+    Follow this HTML structure exactly, filling in the appropriate content. Make sure to optimize the content for the specific job application.
   `
 
   // Step 4: Send to Gemini and get response
@@ -357,12 +407,239 @@ async function processFileData(
   console.log('Received optimized resume from Gemini')
   console.log('Optimized resume length:', optimizedText.length)
 
-  // Return success response with the optimized text
+  // Step 6: Generate HTML for the resume
+  const html = generateResumeHtml(optimizedText, application)
+
+  // Step 7: Save the HTML as a file in Supabase
+  const { htmlUrl, customResumeId } = await saveResumesToSupabase(html, userId, resumeId, application)
+
+  // Return success response with the optimized text and file URLs
   return {
     success: true,
     data: {
       message: 'Resume optimization completed successfully',
-      optimizedResumePreview: optimizedText.substring(0, 200) + '...' // Just return a preview
+      optimizedResumePreview: optimizedText.substring(0, 200) + '...',
+      htmlUrl: htmlUrl,
+      customResumeId,
+      instructions: 'Your optimized resume will open in our resume viewer. You can use the "Save as PDF" button in the viewer to download a PDF version.'
     }
+  }
+}
+
+// Function to generate HTML from the optimized resume text
+function generateResumeHtml(resumeText: string, application: Application): string {
+  // Create a professional-looking HTML template
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Optimized Resume for ${application.companyName}</title>
+      <style>
+        body {
+          font-family: 'Arial', sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 8.5in;
+          margin: 0 auto;
+          padding: 0.5in;
+        }
+        h1, h2, h3 {
+          color: #2c3e50;
+          margin-top: 0;
+        }
+        h1 {
+          font-size: 24px;
+          margin-bottom: 5px;
+        }
+        h2 {
+          font-size: 18px;
+          border-bottom: 1px solid #eee;
+          padding-bottom: 5px;
+          margin-top: 20px;
+        }
+        .section {
+          margin-bottom: 20px;
+        }
+        .contact-info {
+          margin-bottom: 20px;
+          text-align: center;
+        }
+        .contact-info p {
+          margin-top: 0;
+          color: #7f8c8d;
+        }
+        .skills {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+        .skill {
+          background-color: #f5f5f5;
+          padding: 5px 10px;
+          border-radius: 3px;
+          font-size: 14px;
+        }
+        .experience-item, .education-item {
+          margin-bottom: 15px;
+        }
+        .job-header, .education-header {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 5px;
+          flex-wrap: wrap;
+        }
+        .job-title, .degree {
+          font-weight: bold;
+        }
+        .company, .school {
+          font-weight: bold;
+          color: #2c3e50;
+        }
+        .dates {
+          color: #7f8c8d;
+          font-style: italic;
+        }
+        ul {
+          padding-left: 20px;
+          margin-top: 5px;
+        }
+        li {
+          margin-bottom: 5px;
+        }
+        .footer {
+          margin-top: 30px;
+          text-align: center;
+          font-size: 12px;
+          color: #7f8c8d;
+          border-top: 1px solid #eee;
+          padding-top: 10px;
+        }
+        .print-button {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background-color: #3498db;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+          transition: background-color 0.3s;
+        }
+        .print-button:hover {
+          background-color: #2980b9;
+        }
+        @media print {
+          body {
+            padding: 0;
+          }
+          @page {
+            margin: 0.5in;
+          }
+          .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+          }
+          .print-button {
+            display: none;
+          }
+        }
+      </style>
+    </head>
+    <body>
+      <button class="print-button" onclick="window.print()">Save as PDF</button>
+      <div class="resume-content">
+        ${resumeText}
+      </div>
+      <div class="footer">
+        <p>Optimized for ${application.companyName} - ${application.jobTitle}</p>
+      </div>
+      <script>
+        // Add a message when the page loads
+        window.onload = function() {
+          console.log('Resume loaded. Click "Save as PDF" to save or print this resume.');
+        };
+      </script>
+    </body>
+    </html>
+  `
+}
+
+// Function to save the resume files to Supabase
+async function saveResumesToSupabase(
+  html: string,
+  userId: string,
+  resumeId: number,
+  application: Application
+): Promise<{ htmlUrl: string, customResumeId: number }> {
+  try {
+    // Initialize Supabase client
+    const config = useRuntimeConfig()
+    const supabase = createClient(
+      config.public.supabaseUrl as string,
+      config.supabaseServiceKey as string
+    )
+
+    // Create file names
+    const timestamp = Date.now()
+    const sanitizedCompany = application.companyName.replace(/\s+/g, '_')
+    const sanitizedTitle = application.jobTitle.replace(/\s+/g, '_')
+    const baseFileName = `${sanitizedCompany}_${sanitizedTitle}_${timestamp}`
+
+    // Save HTML file
+    const htmlFileName = `${baseFileName}.html`
+    const htmlPath = `custom_resumes/${userId}/${htmlFileName}`
+    const htmlBlob = new Blob([html], { type: 'text/html' })
+
+    const { error: htmlError } = await supabase.storage
+      .from('resumes')
+      .upload(htmlPath, htmlBlob, {
+        contentType: 'text/html',
+        upsert: false
+      })
+
+    if (htmlError) {
+      console.error('Error uploading HTML file:', htmlError)
+      throw new Error(`Failed to upload HTML file: ${htmlError.message}`)
+    }
+
+    // Get public URLs
+    const { data: htmlData } = supabase.storage
+      .from('resumes')
+      .getPublicUrl(htmlPath)
+
+    // Save record to database
+    const customResumeTitle = `${application.companyName} - ${application.jobTitle} Resume`
+
+    const result = await db
+      .insert(customResumes)
+      .values({
+        userId,
+        originalResumeId: resumeId,
+        applicationId: application.id,
+        title: customResumeTitle,
+        fileUrl: htmlData.publicUrl,
+        customizations: ['Optimized for job application']
+      })
+      .returning()
+
+    const customResumeId = result[0]?.id || 0
+
+    // Create a URL for the resume viewer page
+    const viewerUrl = `/resume-viewer/${customResumeId}`
+
+    return {
+      htmlUrl: viewerUrl, // Return the viewer URL instead of the direct file URL
+      customResumeId
+    }
+  } catch (error) {
+    console.error('Error saving resume files:', error)
+    throw error
   }
 }

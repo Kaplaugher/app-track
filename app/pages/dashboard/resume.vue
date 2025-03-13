@@ -49,6 +49,23 @@ interface Resume {
   updatedAt: Date
 }
 
+// Define a type for custom resume
+interface CustomResume {
+  id: number
+  userId: string
+  originalResumeId: number
+  applicationId: number
+  title: string
+  fileUrl: string
+  customizations: string[]
+  createdAt: string
+  updatedAt: string
+  application?: {
+    companyName: string
+    jobTitle: string
+  }
+}
+
 // Define a type for dropdown menu items
 interface DropdownMenuItem {
   label?: string
@@ -65,6 +82,19 @@ const resumes = computed(() => {
   if (!resumesResponse.value?.success) return []
   return resumesResponse.value?.data || []
 })
+
+// Fetch user's custom resumes
+const { data: customResumesResponse, refresh: refreshCustomResumes, pending: loadingCustomResumes } = await useFetch<{ success: boolean, data?: CustomResume[], error?: string }>('/api/resumes/custom')
+const customResumes = computed(() => {
+  if (!customResumesResponse.value?.success) return []
+  return customResumesResponse.value?.data || []
+})
+
+// Format date function
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString()
+}
 
 // Create dropdown items for each resume
 const getDropdownItems = (resume: Resume): DropdownMenuItem[][] => {
@@ -97,6 +127,30 @@ const getDropdownItems = (resume: Resume): DropdownMenuItem[][] => {
       onSelect: () => deleteResume(resume.id)
     }
   ])
+
+  return items
+}
+
+// Create dropdown items for each custom resume
+const getCustomResumeDropdownItems = (resume: CustomResume): DropdownMenuItem[][] => {
+  const items: DropdownMenuItem[][] = [
+    [
+      {
+        label: 'View',
+        icon: 'i-lucide-eye',
+        to: `/resume-viewer/${resume.id}`,
+        target: '_blank'
+      }
+    ],
+    [
+      {
+        label: 'Delete',
+        icon: 'i-lucide-trash-2',
+        color: 'error',
+        onSelect: () => deleteCustomResume(resume.id)
+      }
+    ]
+  ]
 
   return items
 }
@@ -219,6 +273,37 @@ async function deleteResume(id: number) {
     toast.add({
       title: 'Error',
       description: error instanceof Error ? error.message : 'Failed to delete resume',
+      color: 'error'
+    })
+  }
+}
+
+// Function to delete a custom resume
+async function deleteCustomResume(id: number) {
+  try {
+    const response = await $fetch<{ success: boolean, data?: { id: number, message: string }, error?: string }>(`/api/resumes/custom/${id}`, {
+      method: 'DELETE'
+    })
+
+    if (!response.success) {
+      // Use type assertion to access the error property
+      const errorResponse = response as { success: boolean, error?: string }
+      throw new Error(errorResponse.error || 'Failed to delete custom resume')
+    }
+
+    toast.add({
+      title: 'Deleted',
+      description: 'Custom resume has been removed',
+      color: 'info'
+    })
+
+    // Refresh the custom resumes list
+    refreshCustomResumes()
+  } catch (error) {
+    console.error('Error deleting custom resume:', error)
+    toast.add({
+      title: 'Error',
+      description: error instanceof Error ? error.message : 'Failed to delete custom resume',
       color: 'error'
     })
   }
@@ -432,6 +517,94 @@ async function setAsDefault(id: number) {
                     variant="ghost"
                     icon="i-lucide-more-vertical"
                     square
+                  />
+                </UDropdownMenu>
+              </div>
+            </div>
+          </div>
+        </UCard>
+
+        <!-- Optimized resumes section -->
+        <UCard class="lg:col-span-2">
+          <template #header>
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold">
+                Optimized Resumes
+              </h2>
+              <UTooltip text="These are resumes that have been customized for specific job applications">
+                <UIcon name="i-lucide-info" class="h-5 w-5 text-gray-400" />
+              </UTooltip>
+            </div>
+          </template>
+
+          <div v-if="loadingCustomResumes" class="py-8 text-center">
+            <UIcon name="i-lucide-loader-2" class="animate-spin size-12 mx-auto mb-2 text-gray-400" />
+            <p class="text-gray-600 dark:text-gray-400">
+              Loading optimized resumes...
+            </p>
+          </div>
+
+          <div v-else-if="customResumes.length === 0" class="py-8 text-center">
+            <UIcon name="i-lucide-file-sparkles" class="size-12 mx-auto mb-2 text-gray-400" />
+            <p class="text-gray-600 dark:text-gray-400">
+              No optimized resumes yet
+            </p>
+            <p class="text-sm text-gray-500 mt-2 max-w-md mx-auto">
+              Go to an application and click "Generate Custom Resume" to create a resume optimized for a specific job.
+            </p>
+          </div>
+
+          <div v-else class="space-y-4">
+            <div
+              v-for="resume in customResumes"
+              :key="resume.id"
+              class="p-4 border rounded-lg flex items-start justify-between gap-4"
+            >
+              <div class="flex items-start gap-3">
+                <UIcon name="i-lucide-file-sparkles" class="size-8 text-primary-500 mt-1" />
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="font-medium">
+                      {{ resume.title }}
+                    </h3>
+                  </div>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Optimized for: <span class="font-medium">{{ resume.application?.companyName }}</span> - {{ resume.application?.jobTitle }}
+                  </p>
+                  <p class="text-xs text-gray-500 mt-1">
+                    Created: {{ formatDate(resume.createdAt) }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <UButton
+                  color="primary"
+                  variant="ghost"
+                  icon="i-lucide-eye"
+                  :to="`/resume-viewer/${resume.id}`"
+                  target="_blank"
+                  size="sm"
+                  label="View"
+                />
+                <UDropdownMenu
+                  :items="getCustomResumeDropdownItems(resume)"
+                  mode="click"
+                  :content="{
+                    align: 'end',
+                    side: 'bottom',
+                    sideOffset: 8
+                  }"
+                  :ui="{
+                    content: 'w-48'
+                  }"
+                >
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-lucide-more-vertical"
+                    square
+                    size="sm"
                   />
                 </UDropdownMenu>
               </div>

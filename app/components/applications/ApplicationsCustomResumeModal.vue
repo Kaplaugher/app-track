@@ -20,6 +20,11 @@ interface CustomResumeResponse {
     updatedAt: string
   }
   fileUrl: string
+  htmlUrl: string
+  customResumeId: number
+  optimizedResumePreview: string
+  instructions: string
+  message: string
 }
 
 const props = defineProps<{
@@ -29,6 +34,8 @@ const props = defineProps<{
 const open = ref(false)
 const isGenerating = ref(false)
 const customResumeUrl = ref<string | null>(null)
+const customResumeInstructions = ref<string | null>(null)
+const optimizedResumePreview = ref<string | null>(null)
 const selectedResumeId = ref<number | null>(null)
 const toast = useToast()
 const fetchError = ref<string | null>(null)
@@ -38,6 +45,8 @@ watch(() => open.value, (newValue) => {
   if (!newValue) {
     selectedResumeId.value = null
     customResumeUrl.value = null
+    customResumeInstructions.value = null
+    optimizedResumePreview.value = null
     isGenerating.value = false
   }
 })
@@ -90,10 +99,13 @@ async function generateCustomResume() {
     })
 
     if (response.success && response.data) {
-      customResumeUrl.value = response.data.fileUrl
+      customResumeUrl.value = response.data.htmlUrl || response.data.fileUrl
+      customResumeInstructions.value = response.data.instructions || 'Open the link to view your optimized resume.'
+      optimizedResumePreview.value = response.data.optimizedResumePreview || null
+
       toast.add({
         title: 'Success',
-        description: 'Custom resume generated successfully',
+        description: response.data.message || 'Custom resume generated successfully',
         icon: 'i-lucide-check',
         color: 'success'
       })
@@ -216,23 +228,41 @@ async function generateCustomResume() {
           </UFormField>
 
           <div v-if="customResumeUrl" class="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div class="flex items-center justify-between">
-              <div>
-                <h4 class="font-medium">
-                  Custom Resume Generated
-                </h4>
-                <p class="text-sm text-gray-600 dark:text-gray-400">
-                  Your custom resume is ready to download
-                </p>
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h4 class="font-medium">
+                    Custom Resume Generated
+                  </h4>
+                  <p class="text-sm text-gray-600 dark:text-gray-400">
+                    Your optimized resume is ready to view
+                  </p>
+                </div>
+                <UButton
+                  :to="customResumeUrl"
+                  target="_blank"
+                  label="View Resume"
+                  icon="i-lucide-external-link"
+                  color="primary"
+                  variant="solid"
+                />
               </div>
-              <UButton
-                :to="customResumeUrl"
-                target="_blank"
-                label="View Resume"
-                icon="i-lucide-external-link"
-                color="primary"
-                variant="outline"
-              />
+
+              <div v-if="customResumeInstructions" class="text-sm bg-blue-50 dark:bg-blue-900/20 p-3 rounded border-l-2 border-blue-500">
+                <div class="flex items-start gap-2">
+                  <UIcon name="i-lucide-info" class="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <p>{{ customResumeInstructions }}</p>
+                </div>
+              </div>
+
+              <div v-if="optimizedResumePreview" class="mt-2">
+                <h5 class="text-sm font-medium mb-1">
+                  Preview:
+                </h5>
+                <div class="text-xs bg-white dark:bg-gray-900 p-3 rounded border border-gray-200 dark:border-gray-700 max-h-40 overflow-y-auto">
+                  {{ optimizedResumePreview }}
+                </div>
+              </div>
             </div>
           </div>
         </div>
