@@ -1,6 +1,6 @@
+import { eq, and, desc } from 'drizzle-orm'
 import { db } from '../../../../db'
 import { resumes } from '../../../../db/schema'
-import { eq } from 'drizzle-orm'
 
 export default defineEventHandler(async (event) => {
   try {
@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
 
     // Get the resume ID from the URL
     const resumeId = parseInt(event.context.params?.id || '0')
-    
+
     if (!resumeId) {
       throw createError({
         statusCode: 400,
@@ -29,8 +29,12 @@ export default defineEventHandler(async (event) => {
     const resumeData = await db
       .select()
       .from(resumes)
-      .where(eq(resumes.id, resumeId))
-      .where(eq(resumes.userId, userId))
+      .where(
+        and(
+          eq(resumes.id, resumeId),
+          eq(resumes.userId, userId)
+        )
+      )
       .limit(1)
 
     if (!resumeData.length) {
@@ -44,8 +48,12 @@ export default defineEventHandler(async (event) => {
     await db
       .update(resumes)
       .set({ isDefault: false })
-      .where(eq(resumes.userId, userId))
-      .where(eq(resumes.isDefault, true))
+      .where(
+        and(
+          eq(resumes.userId, userId),
+          eq(resumes.isDefault, true)
+        )
+      )
 
     // Then, set the selected resume as default
     await db
@@ -58,8 +66,7 @@ export default defineEventHandler(async (event) => {
       .select()
       .from(resumes)
       .where(eq(resumes.userId, userId))
-      .orderBy(resumes.isDefault, 'desc')
-      .orderBy(resumes.createdAt, 'desc')
+      .orderBy(desc(resumes.isDefault), desc(resumes.createdAt))
 
     return {
       success: true,
@@ -72,4 +79,4 @@ export default defineEventHandler(async (event) => {
       error: error instanceof Error ? error.message : 'Unknown error'
     }
   }
-}) 
+})
