@@ -222,63 +222,90 @@ async function processFileData(
       console.log('Processing PDF file')
 
       try {
-        // Convert Blob to Buffer for pdf.js-extract
+        // Convert Blob to Buffer for PDF processing
         const arrayBuffer = await fileData.arrayBuffer()
         const buffer = Buffer.from(arrayBuffer)
 
         try {
-          // Dynamically import pdf.js-extract to avoid build issues
-          const { PDFExtract } = await import('pdf.js-extract')
+          // Use unpdf instead of pdf.js-extract
+          const { getDocumentProxy, extractText } = await import('unpdf')
 
-          // Initialize PDF extractor
-          const pdfExtract = new PDFExtract()
-          const options = {}
+          // Load PDF from buffer
+          const pdf = await getDocumentProxy(new Uint8Array(buffer))
 
           // Extract text from PDF
-          const data = await pdfExtract.extractBuffer(buffer, options)
+          const { totalPages, text } = await extractText(pdf, { mergePages: true })
 
-          // Combine all page content
-          if (data && data.pages && data.pages.length > 0) {
-            // Extract text from each page and join them
-            resumeText = data.pages.map((page) => {
-              // Each page has content items with text
-              return page.content
-                .map(item => item.str)
+          // Set the extracted text
+          resumeText = text
+
+          console.log('PDF parsed successfully')
+          console.log('PDF info:', {
+            pageCount: totalPages,
+            textLength: resumeText.length
+          })
+
+          // Clean up the PDF text
+          // Remove excessive whitespace and normalize line breaks
+          resumeText = resumeText
+            .replace(/\r\n/g, '\n')
+            .replace(/\s+/g, ' ')
+            .replace(/\n+/g, '\n')
+            .trim()
+
+          // Remove any PDF artifacts or non-printable characters
+          resumeText = resumeText.replace(/[^\x20-\x7E\n]/g, '')
+
+          console.log('PDF text cleaned, new length:', resumeText.length)
+
+          if (!resumeText || resumeText.length === 0) {
+            console.error('PDF parsing returned no text')
+            throw new Error('PDF parsing returned no text')
+          }
+        } catch (pdfError) {
+          console.error('Error parsing PDF with unpdf:', pdfError)
+
+          // Try a simpler approach with unpdf if the first method failed
+          try {
+            const { getResolvedPDFJS } = await import('unpdf')
+            const pdfjs = await getResolvedPDFJS()
+
+            // Use the lower-level PDF.js API
+            const loadingTask = pdfjs.getDocument(new Uint8Array(buffer))
+            const doc = await loadingTask.promise
+
+            let fullText = ''
+            for (let i = 1; i <= doc.numPages; i++) {
+              const page = await doc.getPage(i)
+              const textContent = await page.getTextContent()
+              // Handle different types of text items
+              const pageText = textContent.items
+                .map(item => 'str' in item ? item.str : '')
                 .join(' ')
-            }).join('\n\n')
+              fullText += pageText + '\n\n'
+            }
 
-            console.log('PDF parsed successfully')
-            console.log('PDF info:', {
-              pageCount: data.pages.length,
-              textLength: resumeText.length
-            })
+            resumeText = fullText
+            console.log('Fallback PDF extraction succeeded')
 
-            // Clean up the PDF text
-            // Remove excessive whitespace and normalize line breaks
+            // Clean up the text
             resumeText = resumeText
               .replace(/\r\n/g, '\n')
               .replace(/\s+/g, ' ')
               .replace(/\n+/g, '\n')
               .trim()
-
-            // Remove any PDF artifacts or non-printable characters
-            resumeText = resumeText.replace(/[^\x20-\x7E\n]/g, '')
-
-            console.log('PDF text cleaned, new length:', resumeText.length)
-          } else {
-            console.error('PDF parsing returned no pages')
-            throw new Error('PDF parsing returned no pages')
+              .replace(/[^\x20-\x7E\n]/g, '')
+          } catch (fallbackError) {
+            console.error('Even fallback PDF extraction failed:', fallbackError)
+            throw pdfError // Re-throw the original error
           }
-        } catch (pdfError) {
-          console.error('Error parsing PDF with pdf.js-extract:', pdfError)
-          throw pdfError // Re-throw to be caught by outer catch
         }
       } catch (pdfProcessingError) {
         console.error('Error in PDF processing:', pdfProcessingError)
-        // Fallback to regular text extraction if PDF parsing fails
+        // Last resort: try to get text directly from the blob
         try {
           resumeText = await fileData.text()
-          console.log('Fallback to regular text extraction')
+          console.log('Last resort text extraction used')
 
           // Check if the text contains PDF header (%PDF)
           if (resumeText.startsWith('%PDF')) {
@@ -288,7 +315,7 @@ async function processFileData(
             resumeText = 'PDF EXTRACTION PARTIAL: ' + resumeText
           }
         } catch (fallbackError) {
-          console.error('Even fallback text extraction failed:', fallbackError)
+          console.error('All PDF extraction methods failed:', fallbackError)
           resumeText = 'Failed to extract text from PDF file.'
         }
       }
