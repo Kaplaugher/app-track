@@ -24,12 +24,6 @@ const links = [[{
     to: '/dashboard/settings',
     exact: true
   }, {
-    label: 'Members',
-    to: '/dashboard/settings/members'
-  }, {
-    label: 'Notifications',
-    to: '/dashboard/settings/notifications'
-  }, {
     label: 'Security',
     to: '/dashboard/settings/security'
   }]

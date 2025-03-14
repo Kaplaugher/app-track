@@ -9,13 +9,13 @@ definePageMeta({
 const { isNotificationsSlideoverOpen } = useDashboard()
 
 const items = [[{
-  label: 'New mail',
-  icon: 'i-lucide-send',
-  to: '/inbox'
+  label: 'New Application',
+  icon: 'i-lucide-briefcase',
+  to: '/dashboard/applications'
 }, {
-  label: 'New customer',
-  icon: 'i-lucide-user-plus',
-  to: '/customers'
+  label: 'New Resume',
+  icon: 'i-lucide-file-text',
+  to: '/dashboard/resume'
 }]]
 
 const range = shallowRef<Range>({

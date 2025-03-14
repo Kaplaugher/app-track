@@ -5,6 +5,24 @@ import type { Notification } from '~/types'
 const { isNotificationsSlideoverOpen } = useDashboard()
 
 const { data: notifications } = await useFetch<Notification[]>('/api/notifications')
+
+// Function to determine the appropriate route based on notification content
+function getNotificationRoute(notification: Notification): string {
+  const body = notification.body.toLowerCase()
+  if (body.includes('application status')) {
+    return `/applications?id=${notification.id}`
+  } else if (body.includes('resume') && (body.includes('parsed') || body.includes('analysis'))) {
+    return `/resumes?id=${notification.id}`
+  } else if (body.includes('custom resume')) {
+    return `/custom-resumes?id=${notification.id}`
+  } else if (body.includes('new application')) {
+    return `/applications?id=${notification.id}&new=true`
+  } else if (body.includes('job match')) {
+    return `/job-matches?id=${notification.id}`
+  } else {
+    return `/dashboard?notification=${notification.id}`
+  }
+}
 </script>
 
 <template>
@@ -16,7 +34,7 @@ const { data: notifications } = await useFetch<Notification[]>('/api/notificatio
       <NuxtLink
         v-for="notification in notifications"
         :key="notification.id"
-        :to="`/inbox?id=${notification.id}`"
+        :to="getNotificationRoute(notification)"
         class="px-3 py-2.5 rounded-md hover:bg-(--ui-bg-elevated)/50 flex items-center gap-3 relative -mx-3 first:-mt-3 last:-mb-3"
       >
         <UChip

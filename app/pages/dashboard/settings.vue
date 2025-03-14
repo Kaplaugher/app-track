@@ -9,27 +9,9 @@ const links = [[{
   to: '/dashboard/settings',
   exact: true
 }, {
-  label: 'Members',
-  icon: 'i-lucide-users',
-  to: '/dashboard/settings/members'
-}, {
-  label: 'Notifications',
-  icon: 'i-lucide-bell',
-  to: '/dashboard/settings/notifications'
-}, {
   label: 'Security',
   icon: 'i-lucide-shield',
   to: '/dashboard/settings/security'
-}], [{
-  label: 'Documentation',
-  icon: 'i-lucide-book-open',
-  to: 'https://ui3.nuxt.dev/getting-started/installation/pro/nuxt',
-  target: '_blank'
-}, {
-  label: 'Buy now',
-  icon: 'i-lucide-shopping-cart',
-  to: 'https://ui.nuxt.com/pro/purchase',
-  target: '_blank'
 }]]
 </script>
 
