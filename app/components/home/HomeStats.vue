@@ -6,41 +6,32 @@ const props = defineProps<{
   range: Range
 }>()
 
-function formatCurrency(value: number): string {
-  return value.toLocaleString('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0
-  })
-}
-
 const baseStats = [{
-  title: 'Customers',
-  icon: 'i-lucide-users',
-  minValue: 400,
-  maxValue: 1000,
-  minVariation: -15,
+  title: 'Applications',
+  icon: 'i-lucide-file-text',
+  minValue: 10,
+  maxValue: 50,
+  minVariation: -10,
   maxVariation: 25
 }, {
-  title: 'Conversions',
-  icon: 'i-lucide-chart-pie',
-  minValue: 1000,
-  maxValue: 2000,
-  minVariation: -10,
+  title: 'Response Rate',
+  icon: 'i-lucide-percent',
+  minValue: 20,
+  maxValue: 60,
+  minVariation: -15,
   maxVariation: 20
 }, {
-  title: 'Revenue',
-  icon: 'i-lucide-circle-dollar-sign',
-  minValue: 200000,
-  maxValue: 500000,
+  title: 'Interviews',
+  icon: 'i-lucide-users',
+  minValue: 0,
+  maxValue: 10,
   minVariation: -20,
-  maxVariation: 30,
-  formatter: formatCurrency
+  maxVariation: 30
 }, {
-  title: 'Orders',
-  icon: 'i-lucide-shopping-cart',
-  minValue: 100,
-  maxValue: 300,
+  title: 'Active Apps',
+  icon: 'i-lucide-hourglass',
+  minValue: 5,
+  maxValue: 25,
   minVariation: -5,
   maxVariation: 15
 }]
@@ -53,7 +44,7 @@ const { data: stats } = await useAsyncData<Stat[]>('stats', async () => {
     return {
       title: stat.title,
       icon: stat.icon,
-      value: stat.formatter ? stat.formatter(value) : value,
+      value: value,
       variation
     }
   })

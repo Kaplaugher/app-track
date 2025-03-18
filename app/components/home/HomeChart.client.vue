@@ -12,7 +12,8 @@ const props = defineProps<{
 
 type DataRecord = {
   date: Date
-  amount: number
+  applications: number
+  responses: number
 }
 
 const { width } = useElementSize(cardRef)
@@ -25,21 +26,26 @@ const { data } = await useAsyncData<DataRecord[]>(async () => {
     monthly: eachMonthOfInterval
   } as Record<Period, typeof eachDayOfInterval>)[props.period](props.range)
 
-  const min = 1000
-  const max = 10000
+  const minApps = 0
+  const maxApps = 5
+  const responseRate = 0.4 // 40% response rate
 
-  return dates.map(date => ({ date, amount: Math.floor(Math.random() * (max - min + 1)) + min }))
+  return dates.map(date => ({ 
+    date, 
+    applications: Math.floor(Math.random() * (maxApps - minApps + 1)) + minApps,
+    responses: Math.floor((Math.random() * (maxApps - minApps + 1)) * responseRate)
+  }))
 }, {
   watch: [() => props.period, () => props.range],
   default: () => []
 })
 
 const x = (_: DataRecord, i: number) => i
-const y = (d: DataRecord) => d.amount
+const y = (d: DataRecord) => d.applications
+const yResponses = (d: DataRecord) => d.responses
 
-const total = computed(() => data.value.reduce((acc: number, { amount }) => acc + amount, 0))
-
-const formatNumber = new Intl.NumberFormat('en', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format
+const totalApplications = computed(() => data.value.reduce((acc: number, { applications }) => acc + applications, 0))
+const totalResponses = computed(() => data.value.reduce((acc: number, { responses }) => acc + responses, 0))
 
 const formatDate = (date: Date): string => {
   return ({
@@ -57,7 +63,7 @@ const xTicks = (i: number) => {
   return formatDate(data.value[i].date)
 }
 
-const template = (d: DataRecord) => `${formatDate(d.date)}: ${formatNumber(d.amount)}`
+const template = (d: DataRecord) => `${formatDate(d.date)}: ${d.applications} applications (${d.responses} responses)`
 </script>
 
 <template>
@@ -65,11 +71,16 @@ const template = (d: DataRecord) => `${formatDate(d.date)}: ${formatNumber(d.amo
     <template #header>
       <div>
         <p class="text-xs text-(--ui-text-muted) uppercase mb-1.5">
-          Revenue
+          Application Activity
         </p>
-        <p class="text-3xl text-(--ui-text-highlighted) font-semibold">
-          {{ formatNumber(total) }}
-        </p>
+        <div class="flex items-center gap-4">
+          <p class="text-3xl text-(--ui-text-highlighted) font-semibold">
+            {{ totalApplications }} <span class="text-base">applications</span>
+          </p>
+          <p class="text-xl text-(--ui-text-muted)">
+            {{ totalResponses }} <span class="text-sm">responses</span>
+          </p>
+        </div>
       </div>
     </template>
 
@@ -89,6 +100,14 @@ const template = (d: DataRecord) => `${formatDate(d.date)}: ${formatNumber(d.amo
         :y="y"
         color="var(--ui-primary)"
         :opacity="0.1"
+      />
+      
+      <VisLine
+        :x="x"
+        :y="yResponses"
+        color="var(--ui-success)"
+        :stroke-width="2"
+        :stroke-dasharray="[4, 4]"
       />
 
       <VisAxis

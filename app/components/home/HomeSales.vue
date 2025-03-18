@@ -1,62 +1,68 @@
 <script setup lang="ts">
 import { h, resolveComponent } from 'vue'
 import type { TableColumn } from '@nuxt/ui'
-import type { Period, Range, Sale } from '~/types'
+import type { Application } from '../../../db/schema'
 
 const props = defineProps<{
-  period: Period
-  range: Range
+  period: string
+  range: DateRange
 }>()
+
+interface DateRange {
+  start: Date
+  end: Date
+}
+
+type ApplicationStatus = 'pending' | 'applied' | 'interview' | 'offer' | 'rejected'
+type StatusColorMap = Record<ApplicationStatus, 'warning' | 'info' | 'primary' | 'success' | 'error'>
 
 const UBadge = resolveComponent('UBadge')
 
-const sampleEmails = [
-  'james.anderson@example.com',
-  'mia.white@example.com',
-  'william.brown@example.com',
-  'emma.davis@example.com',
-  'ethan.harris@example.com'
-]
-
-const { data } = await useAsyncData('sales', async () => {
-  const sales: Sale[] = []
-  const currentDate = new Date()
-
-  for (let i = 0; i < 5; i++) {
-    const hoursAgo = randomInt(0, 48)
-    const date = new Date(currentDate.getTime() - hoursAgo * 3600000)
-
-    sales.push({
-      id: (4600 - i).toString(),
-      date: date.toISOString(),
-      status: randomFrom(['paid', 'failed', 'refunded']),
-      email: randomFrom(sampleEmails),
-      amount: randomInt(100, 1000)
-    })
-  }
-
-  return sales.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+const { data } = await useAsyncData<Application[]>('recent-applications', async () => {
+  // Fetch only the 10 most recent applications
+  const applications = await $fetch<Application[]>('/api/applications', {
+    params: {
+      limit: 10,
+      sort: 'date:desc'
+    }
+  })
+  return applications
 }, {
   watch: [() => props.period, () => props.range],
   default: () => []
 })
 
-const columns: TableColumn<Sale>[] = [
+const statusColors: StatusColorMap = {
+  pending: 'warning',
+  applied: 'info',
+  interview: 'primary',
+  offer: 'success',
+  rejected: 'error'
+}
+
+const columns: TableColumn<Application>[] = [
   {
-    accessorKey: 'id',
-    header: 'ID',
-    cell: ({ row }) => `#${row.getValue('id')}`
+    accessorKey: 'companyName',
+    header: 'Company',
+    cell: ({ row }) => {
+      return h('div', { class: 'flex items-center gap-3' }, [
+        h('div', undefined, [
+          h('p', { class: 'font-medium text-(--ui-text-highlighted)' }, row.original.companyName),
+          h('p', { class: 'text-sm text-(--ui-text-muted)' }, row.original.jobTitle)
+        ])
+      ])
+    }
   },
   {
     accessorKey: 'date',
-    header: 'Date',
+    header: 'Applied',
     cell: ({ row }) => {
-      return new Date(row.getValue('date')).toLocaleString('en-US', {
-        day: 'numeric',
+      const date = new Date(row.original.date)
+      return date.toLocaleDateString('en-US', {
         month: 'short',
+        day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit',
-        hour12: false
+        minute: '2-digit'
       })
     }
   },
@@ -64,33 +70,12 @@ const columns: TableColumn<Sale>[] = [
     accessorKey: 'status',
     header: 'Status',
     cell: ({ row }) => {
-      const color = {
-        paid: 'success' as const,
-        failed: 'error' as const,
-        refunded: 'neutral' as const
-      }[row.getValue('status') as string]
+      const status = row.original.status as ApplicationStatus
+      const color = statusColors[status] || 'neutral'
 
       return h(UBadge, { class: 'capitalize', variant: 'subtle', color }, () =>
-        row.getValue('status')
+        status
       )
-    }
-  },
-  {
-    accessorKey: 'email',
-    header: 'Email'
-  },
-  {
-    accessorKey: 'amount',
-    header: () => h('div', { class: 'text-right' }, 'Amount'),
-    cell: ({ row }) => {
-      const amount = Number.parseFloat(row.getValue('amount'))
-
-      const formatted = new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'EUR'
-      }).format(amount)
-
-      return h('div', { class: 'text-right font-medium' }, formatted)
     }
   }
 ]
@@ -108,5 +93,14 @@ const columns: TableColumn<Sale>[] = [
       th: 'first:rounded-l-[calc(var(--ui-radius)*2)] last:rounded-r-[calc(var(--ui-radius)*2)] border-y border-(--ui-border) first:border-l last:border-r',
       td: 'border-b border-(--ui-border)'
     }"
-  />
+  >
+    <template #empty-state>
+      <div class="flex flex-col items-center gap-3 py-6">
+        <UIcon name="i-lucide-briefcase" class="h-10 w-10 text-(--ui-text-muted)" />
+        <p class="text-sm text-(--ui-text-muted)">
+          No recent applications
+        </p>
+      </div>
+    </template>
+  </UTable>
 </template>

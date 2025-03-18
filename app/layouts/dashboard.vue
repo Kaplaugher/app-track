@@ -80,10 +80,6 @@ onMounted(async () => {
       class="bg-(--ui-bg-elevated)/25"
       :ui="{ footer: 'lg:border-t lg:border-(--ui-border)' }"
     >
-      <template #header="{ collapsed }">
-        <TeamsMenu :collapsed="collapsed" />
-      </template>
-
       <template #default="{ collapsed }">
         <UDashboardSearchButton :collapsed="collapsed" class="bg-transparent ring-(--ui-border)" />
 

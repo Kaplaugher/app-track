@@ -26,7 +26,7 @@ const columnFilters = ref([{
   value: ''
 }])
 const columnVisibility = ref()
-const rowSelection = ref({ 1: true })
+const rowSelection = ref({})
 
 const { data, status } = await useFetch<Application[]>('/api/applications', {
   key: 'applications',
@@ -102,14 +102,7 @@ function getRowItems(row: Row<Application>) {
         }
       }
     },
-    {
-      label: 'View application details',
-      icon: 'i-lucide-list'
-    },
-    {
-      label: 'View application notes',
-      icon: 'i-lucide-file-text'
-    },
+
     {
       label: 'Generate Custom Resume',
       icon: 'i-lucide-file-plus',

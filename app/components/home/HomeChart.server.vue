@@ -3,11 +3,13 @@
     <template #header>
       <div>
         <p class="text-xs text-(--ui-text-muted) uppercase mb-1.5">
-          Revenue
+          Application Activity
         </p>
-        <p class="text-3xl text-(--ui-text-highlighted) font-semibold">
-          ---
-        </p>
+        <div class="flex items-center gap-4">
+          <p class="text-3xl text-(--ui-text-highlighted) font-semibold">
+            ---
+          </p>
+        </div>
       </div>
     </template>
 
