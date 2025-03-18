@@ -41,7 +41,27 @@ async function fetchHtmlContent() {
 
 // Function to print the resume
 function printResume() {
-  window.print()
+  const iframe = document.querySelector('.resume-iframe') as HTMLIFrameElement
+  if (iframe && iframe.contentWindow) {
+    // Focus the iframe
+    iframe.contentWindow.focus()
+    // Print the iframe content directly
+    iframe.contentWindow.print()
+  }
+}
+
+// Function to adjust iframe height based on content
+function adjustIframeHeight(iframe: HTMLIFrameElement) {
+  try {
+    const doc = iframe.contentDocument || iframe.contentWindow?.document
+    if (doc) {
+      // Get the height of the content
+      const height = doc.documentElement.scrollHeight
+      iframe.style.height = `${height}px`
+    }
+  } catch (err) {
+    console.error('Error adjusting iframe height:', err)
+  }
 }
 
 // Watch for resume data and fetch HTML content when available
@@ -98,7 +118,8 @@ useHead({
           :srcdoc="htmlContent"
           title="Resume Viewer"
           class="resume-iframe"
-          sandbox="allow-same-origin allow-scripts"
+          sandbox="allow-same-origin allow-scripts allow-modals allow-popups allow-printing"
+          @load="(e) => adjustIframeHeight(e.target as HTMLIFrameElement)"
         />
       </div>
 
@@ -177,8 +198,9 @@ useHead({
 
 .resume-iframe {
   width: 100%;
-  height: 80vh;
+  min-height: 80vh;
   border: none;
+  transition: height 0.2s ease;
 }
 
 .loading-container, .error-container {
@@ -213,21 +235,34 @@ useHead({
 }
 
 @media print {
-  .resume-header, .actions, .print-button, .back-button {
-    display: none;
-  }
-
   .resume-viewer-container {
     padding: 0;
+    margin: 0;
+    width: 100%;
+  }
+
+  .resume-header, .actions, .print-button, .back-button {
+    display: none !important;
   }
 
   .resume-iframe-container {
     border: none;
     box-shadow: none;
+    margin: 0;
+    padding: 0;
   }
 
   .resume-iframe {
-    height: 100vh;
+    height: auto !important;
+    min-height: auto !important;
+    width: 100% !important;
+    margin: 0;
+    padding: 0;
+  }
+
+  @page {
+    size: auto;
+    margin: 0.5in;
   }
 }
 

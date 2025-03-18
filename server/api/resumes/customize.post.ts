@@ -465,6 +465,11 @@ function generateResumeHtml(resumeText: string, application: Application): strin
       <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
       <title>Optimized Resume for ${application.companyName}</title>
       <style>
+        @page {
+          size: letter;
+          margin: 0.5in;
+        }
+        
         body {
           font-family: 'Arial', sans-serif;
           line-height: 1.6;
@@ -472,10 +477,12 @@ function generateResumeHtml(resumeText: string, application: Application): strin
           max-width: 8.5in;
           margin: 0 auto;
           padding: 0.5in;
+          background: white;
         }
         h1, h2, h3 {
           color: #2c3e50;
           margin-top: 0;
+          page-break-after: avoid;
         }
         h1 {
           font-size: 24px;
@@ -489,10 +496,12 @@ function generateResumeHtml(resumeText: string, application: Application): strin
         }
         .section {
           margin-bottom: 20px;
+          page-break-inside: avoid;
         }
         .contact-info {
           margin-bottom: 20px;
           text-align: center;
+          page-break-inside: avoid;
         }
         .contact-info p {
           margin-top: 0;
@@ -503,6 +512,7 @@ function generateResumeHtml(resumeText: string, application: Application): strin
           flex-wrap: wrap;
           gap: 10px;
           margin-bottom: 20px;
+          page-break-inside: avoid;
         }
         .skill {
           background-color: #f5f5f5;
@@ -512,6 +522,7 @@ function generateResumeHtml(resumeText: string, application: Application): strin
         }
         .experience-item, .education-item {
           margin-bottom: 15px;
+          page-break-inside: avoid;
         }
         .job-header, .education-header {
           display: flex;
@@ -533,24 +544,31 @@ function generateResumeHtml(resumeText: string, application: Application): strin
         ul {
           padding-left: 20px;
           margin-top: 5px;
+          page-break-before: avoid;
         }
         li {
           margin-bottom: 5px;
+          page-break-inside: avoid;
         }
         @media print {
           body {
             padding: 0;
+            margin: 0;
+            background: white;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
-          @page {
-            margin: 0.5in;
+          .page-break {
+            page-break-before: always;
+          }
+          .no-break {
+            page-break-inside: avoid;
           }
         }
       </style>
     </head>
     <body>
-      <div class="resume-content">
-        ${resumeText}
-      </div>
+      ${resumeText}
     </body>
     </html>
   `

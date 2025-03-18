@@ -30,8 +30,8 @@ const { data } = await useAsyncData<DataRecord[]>(async () => {
   const maxApps = 5
   const responseRate = 0.4 // 40% response rate
 
-  return dates.map(date => ({ 
-    date, 
+  return dates.map(date => ({
+    date,
     applications: Math.floor(Math.random() * (maxApps - minApps + 1)) + minApps,
     responses: Math.floor((Math.random() * (maxApps - minApps + 1)) * responseRate)
   }))
@@ -101,7 +101,7 @@ const template = (d: DataRecord) => `${formatDate(d.date)}: ${d.applications} ap
         color="var(--ui-primary)"
         :opacity="0.1"
       />
-      
+
       <VisLine
         :x="x"
         :y="yResponses"
