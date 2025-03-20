@@ -26,7 +26,8 @@ export default defineNuxtConfig({
       polarServer: process.env.POLAR_SERVER || 'sandbox',
       polarWebhookSecret: process.env.POLAR_WEBHOOK_SECRET,
       supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
-      clerkSecretKey: process.env.CLERK_SECRET_KEY
+      clerkSecretKey: process.env.CLERK_SECRET_KEY,
+      clerkWebhookSecret: process.env.CLERK_WEBHOOK_SECRET
     },
 
     // Variables exposed to the client
