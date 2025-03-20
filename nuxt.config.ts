@@ -19,9 +19,20 @@ export default defineNuxtConfig({
     geminiApiKey: process.env.GEMINI_API_KEY,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
 
+    // Polar configuration
+    private: {
+      polarAccessToken: process.env.POLAR_ACCESS_TOKEN,
+      polarCheckoutSuccessUrl: process.env.POLAR_CHECKOUT_SUCCESS_URL,
+      polarServer: process.env.POLAR_SERVER || 'sandbox',
+      polarWebhookSecret: process.env.POLAR_WEBHOOK_SECRET,
+      supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
+      clerkSecretKey: process.env.CLERK_SECRET_KEY
+    },
+
     // Variables exposed to the client
     public: {
-      supabaseUrl: process.env.SUPABASE_URL
+      supabaseUrl: process.env.SUPABASE_URL,
+      clerkPublishableKey: process.env.CLERK_PUBLISHABLE_KEY
     }
   },
 
