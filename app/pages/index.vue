@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useSubscription } from '~/composables/useSubscription'
+
+const { startCheckout } = useSubscription()
 const links = ref([
   {
     label: 'Get started',
@@ -43,7 +46,7 @@ const plans = ref([
       'Lifetime access'
     ],
     button: {
-      label: 'Buy now'
+      label: 'Start for free'
     }
   },
   {
@@ -56,7 +59,10 @@ const plans = ref([
       'Ghost Job Analysis'
     ],
     button: {
-      label: 'Buy now'
+      label: 'Buy now',
+      onClick: () => {
+        startCheckout('1e52daf4-c3f4-452f-812d-e4bb644994be')
+      }
     }
   }
 
