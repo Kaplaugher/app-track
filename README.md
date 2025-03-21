@@ -1,83 +1,57 @@
+# AppTrack - Smart Job Application Tracking
 
+A modern web application built with Nuxt 3 to help job seekers manage their job search process effectively.
 
-## Quick Start
+## Features
 
-```bash [Terminal]
-npx nuxi@latest init -t github:nuxt-ui-pro/dashboard
+- 📋 **Application Tracking**: Centralized dashboard to manage all your job applications
+- 🤖 **AI Resume Optimization**: AI-powered resume analysis and optimization
+- 📊 **Job Analytics**: Insights and metrics about your application process
+- 🔄 **Browser Extension**: Seamless job application tracking (Pro Plan)
+- 👻 **Ghost Job Analysis**: Identify potentially inactive job listings (Pro Plan)
+
+## Tech Stack
+
+- [Nuxt 3](https://nuxt.com/) - The Vue Framework
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
+- [Nuxt UI](https://ui.nuxt.com/) - UI Components
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+
+## Getting Started
+
+1. Clone the repository
+```bash
+git clone <repository-url>
+cd app-track
 ```
 
-## Setup
-
-Make sure to install the dependencies:
-
+2. Install dependencies
 ```bash
-# npm
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
+# or
 yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
-
+3. Start the development server
 ```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm run dev
-
-# yarn
+# or
 yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-Build the application for production:
+## Plans
 
-```bash
-# npm
-npm run build
+- **Free Plan**: Perfect for individual job seekers
+  - Application tracking
+  - Lifetime access
 
-# pnpm
-pnpm run build
+- **Pro Plan** ($10/month): Enhanced features for serious job hunters
+  - Browser Extension
+  - AI Resume Review
+  - Ghost Job Analysis
 
-# yarn
-yarn build
+## License
 
-# bun
-bun run build
-```
-
-Locally preview production build:
-
-```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm run preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
-
-## Renovate integration
-
-Install [Renovate GitHub app](https://github.com/apps/renovate/installations/select_target) on your repository and you are good to go.
+[MIT](LICENSE)
