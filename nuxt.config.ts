@@ -5,7 +5,8 @@ export default defineNuxtConfig({
     '@nuxt/ui-pro',
     '@vueuse/nuxt',
     '@clerk/nuxt',
-    '@polar-sh/nuxt'
+    '@polar-sh/nuxt',
+    '@nuxtjs/ngrok'
   ],
 
   devtools: {
@@ -29,7 +30,17 @@ export default defineNuxtConfig({
       clerkSecretKey: process.env.CLERK_SECRET_KEY,
       clerkWebhookSecret: process.env.CLERK_WEBHOOK_SECRET
     },
-
+    ngrok: {
+      authtoken: process.env.NGROK_AUTHTOKEN,
+      domain: 'cat-gentle-mantis.ngrok-free.app'
+    },
+    vite: {
+      server: {
+        allowedHosts: [
+          'https://cat-gentle-mantis.ngrok-free.app'
+        ]
+      }
+    },
     // Variables exposed to the client
     public: {
       supabaseUrl: process.env.SUPABASE_URL,

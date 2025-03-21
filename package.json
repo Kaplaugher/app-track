@@ -22,6 +22,7 @@
     "@iconify-json/lucide": "^1.2.27",
     "@iconify-json/simple-icons": "^1.2.26",
     "@nuxt/ui-pro": "3.0.0-beta.2",
+    "@nuxtjs/ngrok": "3.0.1",
     "@polar-sh/nuxt": "^0.2.3",
     "@supabase/supabase-js": "^2.49.1",
     "@unovis/ts": "^1.5.1",
