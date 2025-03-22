@@ -37,7 +37,7 @@ export default defineNuxtConfig({
     vite: {
       server: {
         allowedHosts: [
-          'https://cat-gentle-mantis.ngrok-free.app'
+          'cat-gentle-mantis.ngrok-free.app'
         ]
       }
     },
