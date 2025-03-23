@@ -12,9 +12,9 @@ export const useSubscription = () => {
     try {
       const response = await $fetch<CheckoutResponse>('/api/checkout', {
         method: 'POST',
-        params: {
-          productId,
-          customerId: user.value?.id
+        body: {
+          external_customer_id: user.value?.id,
+          product_id: productId
         }
       })
 

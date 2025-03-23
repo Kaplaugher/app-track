@@ -2,7 +2,13 @@
 import { useSubscription } from '~/composables/useSubscription'
 
 const { startCheckout } = useSubscription()
-
+const links = ref([
+  {
+    label: 'Get started',
+    to: '/getting-started',
+    icon: 'i-lucide-square-play'
+  }
+])
 const features = ref([
   {
     title: 'Application Tracking',
