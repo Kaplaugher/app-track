@@ -12,15 +12,17 @@ export const useSubscription = () => {
     try {
       const response = await $fetch<CheckoutResponse>('/api/checkout', {
         method: 'POST',
-        body: {
-          external_customer_id: user.value?.id,
-          product_id: productId
+        params: {
+          productId,
+          customerExternalId: user.value?.id
         }
       })
 
-      // Redirect to Polar's checkout page
+      // Redirect to Polar's checkout page using Nuxt's navigation
       if (response.url) {
-        window.location.href = response.url
+        await navigateTo(response.url, {
+          external: true
+        })
       }
     } catch (error) {
       console.error('Failed to start checkout:', error)
