@@ -34,13 +34,6 @@ export default defineNuxtConfig({
       authtoken: process.env.NGROK_AUTHTOKEN,
       domain: 'cat-gentle-mantis.ngrok-free.app'
     },
-    vite: {
-      server: {
-        allowedHosts: [
-          'cat-gentle-mantis.ngrok-free.app'
-        ]
-      }
-    },
     // Variables exposed to the client
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
@@ -63,6 +56,12 @@ export default defineNuxtConfig({
   nitro: {
     experimental: {
       openAPI: true
+    }
+  },
+
+  vite: {
+    server: {
+      allowedHosts: ['cat-gentle-mantis.ngrok-free.app']
     }
   },
 

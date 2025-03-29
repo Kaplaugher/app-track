@@ -22,10 +22,66 @@ interface PolarWebhookEvent<T = unknown> {
 
 interface PolarSubscriptionData {
   id: string
-  customer_id: string
   status: string
-  plan_id: string
+  current_period_start: string
   current_period_end: string
+  amount: number
+  currency: string
+  cancel_at_period_end: boolean
+  canceled_at: string | null
+  created_at: string
+  modified_at: string | null
+  recurring_interval: string
+  started_at: string
+  ends_at: string | null
+  ended_at: string | null
+  customer_id: string
+  discount_id: string | null
+  checkout_id: string
+  customer_cancellation_reason: string | null
+  customer_cancellation_comment: string | null
+  price_id: string
+  metadata: Record<string, unknown>
+  custom_field_data: Record<string, unknown>
+  customer: {
+    id: string
+    email: string
+    name: string
+    external_id: string
+    created_at: string
+    modified_at: string | null
+    metadata: Record<string, unknown>
+    email_verified: boolean
+    billing_address?: {
+      line1: string
+      line2: string | null
+      postal_code: string
+      city: string
+      state: string
+      country: string
+    }
+    avatar_url: string | null
+  }
+  product: {
+    id: string
+    name: string
+    description: string
+    recurring_interval: string
+    is_recurring: boolean
+    is_archived: boolean
+    organization_id: string
+    metadata: Record<string, unknown>
+    created_at: string
+    modified_at: string
+  }
+  product_id: string
+  user: {
+    id: string
+    email: string
+    public_name: string
+    avatar_url: string | null
+    github_username: string | null
+  }
 }
 
 interface PolarOrderData {
@@ -68,23 +124,66 @@ export default defineEventHandler(async (event) => {
 
     const { type, data } = payload
 
+    console.log('Received webhook type:', type)
+    console.log('Webhook payload:', JSON.stringify(data, null, 2))
+
     switch (type) {
       // Subscription events
       case 'subscription.created':
       case 'subscription.updated':
       case 'subscription.active': {
+        console.log('Entering subscription update case')
         const subData = data as PolarSubscriptionData
-        await supabase
-          .from('subscriptions')
-          .upsert({
-            subscription_id: subData.id,
-            user_id: subData.customer_id,
-            status: subData.status,
-            plan_id: subData.plan_id,
-            current_period_end: subData.current_period_end,
-            cancel_at: null,
-            updated_at: new Date().toISOString()
-          })
+        try {
+          const clerkId = subData.customer.external_id
+          console.log('Clerk User ID:', clerkId)
+
+          // Update the subscription
+          const { data: subscriptionData, error: subscriptionError } = await supabase
+            .from('subscriptions')
+            .upsert({
+              subscription_id: subData.id,
+              user_id: clerkId,
+              status: subData.status,
+              plan_id: subData.product_id,
+              current_period_end: subData.current_period_end,
+              cancel_at: subData.canceled_at,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'subscription_id'
+            })
+            .select()
+
+          if (subscriptionError) {
+            console.error('Supabase subscription error:', subscriptionError)
+            throw subscriptionError
+          }
+
+          console.log('Subscription upserted:', subscriptionData)
+
+          // Then, create a payment record if this is a new subscription or renewal
+          if (type === 'subscription.created' || type === 'subscription.active') {
+            const { error: paymentError } = await supabase
+              .from('subscription_payments')
+              .insert({
+                subscription_id: subData.id,
+                amount: subData.amount,
+                currency: subData.currency,
+                status: 'succeeded',
+                payment_date: new Date().toISOString()
+              })
+
+            if (paymentError) {
+              console.error('Supabase payment error:', paymentError)
+              throw paymentError
+            }
+          }
+
+          console.log('Successfully updated subscription and payment records in database')
+        } catch (error) {
+          console.error('Error updating subscription:', error)
+          throw error
+        }
         break
       }
 
@@ -139,13 +238,6 @@ export default defineEventHandler(async (event) => {
       // Customer events
       case 'customer.deleted':
         // Optional: Handle customer deletion if needed
-        break
-
-      // Other events we might want to handle in the future
-      case 'benefit_grant.created':
-      case 'benefit_grant.updated':
-      case 'benefit_grant.revoked':
-        // Handle benefit grants if needed
         break
 
       default:

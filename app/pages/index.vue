@@ -5,7 +5,7 @@ const { startCheckout } = useSubscription()
 const links = ref([
   {
     label: 'Get started',
-    to: '/getting-started',
+    to: '/',
     icon: 'i-lucide-square-play'
   }
 ])

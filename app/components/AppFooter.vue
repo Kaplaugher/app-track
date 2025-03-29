@@ -1,22 +1,23 @@
 <script setup lang="ts">
 const items = [
   {
-    label: 'Figma Kit',
-    to: 'https://www.figma.com/community/file/1288455405058138934',
+    label: 'Link 1',
+    to: '/',
     target: '_blank'
   },
   {
-    label: 'Playground',
-    to: 'https://stackblitz.com/edit/nuxt-ui',
+    label: 'Link 2',
+    to: '/',
     target: '_blank'
   },
   {
-    label: 'Roadmap',
-    to: '/roadmap'
+    label: 'Link 3',
+    to: '/',
+    target: '_blank'
   },
   {
-    label: 'Releases',
-    to: 'https://github.com/nuxt/ui/releases',
+    label: 'Link 4',
+    to: '/',
     target: '_blank'
   }
 ]
