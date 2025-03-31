@@ -40,7 +40,10 @@ const items = computed<DropdownMenuItem[][]>(() => {
       : undefined
   }], [{
     label: 'Billing',
-    icon: 'i-lucide-credit-card'
+    icon: 'i-lucide-credit-card',
+    onSelect: () => {
+      window.open('https://polar.sh/app-track/portal', '_blank')
+    }
   }], [{
     label: 'Theme',
     icon: 'i-lucide-palette',

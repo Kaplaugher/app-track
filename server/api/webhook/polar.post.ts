@@ -138,6 +138,11 @@ export default defineEventHandler(async (event) => {
           const clerkId = subData.customer.external_id
           console.log('Clerk User ID:', clerkId)
 
+          if (!clerkId) {
+            console.error('No Clerk ID found in customer external_id')
+            throw new Error('Missing Clerk ID in customer data')
+          }
+
           // Update the subscription
           const { data: subscriptionData, error: subscriptionError } = await supabase
             .from('subscriptions')
@@ -145,7 +150,7 @@ export default defineEventHandler(async (event) => {
               subscription_id: subData.id,
               user_id: clerkId,
               status: subData.status,
-              plan_id: subData.product_id,
+              plan_id: subData.product.id,
               current_period_end: subData.current_period_end,
               cancel_at: subData.canceled_at,
               updated_at: new Date().toISOString()
@@ -187,16 +192,24 @@ export default defineEventHandler(async (event) => {
         break
       }
 
-      case 'subscription.canceled':
-        await supabase
+      case 'subscription.canceled': {
+        const subData = data as PolarSubscriptionData
+        const { error: cancelError } = await supabase
           .from('subscriptions')
           .update({
             status: 'cancelled',
             cancel_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            plan_id: subData.product.id // Ensure plan_id is maintained
           })
-          .match({ subscription_id: (data as PolarSubscriptionData).id })
+          .match({ subscription_id: subData.id })
+
+        if (cancelError) {
+          console.error('Error canceling subscription:', cancelError)
+          throw cancelError
+        }
         break
+      }
 
       case 'subscription.uncanceled':
         await supabase
