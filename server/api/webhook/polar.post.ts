@@ -23,64 +23,64 @@ interface PolarWebhookEvent<T = unknown> {
 interface PolarSubscriptionData {
   id: string
   status: string
-  current_period_start: string
-  current_period_end: string
+  currentPeriodStart: string
+  currentPeriodEnd: string
   amount: number
   currency: string
-  cancel_at_period_end: boolean
-  canceled_at: string | null
-  created_at: string
-  modified_at: string | null
-  recurring_interval: string
-  started_at: string
-  ends_at: string | null
-  ended_at: string | null
-  customer_id: string
-  discount_id: string | null
-  checkout_id: string
-  customer_cancellation_reason: string | null
-  customer_cancellation_comment: string | null
-  price_id: string
+  cancelAtPeriodEnd: boolean
+  canceledAt: string | null
+  createdAt: string
+  modifiedAt: string | null
+  recurringInterval: string
+  startedAt: string
+  endsAt: string | null
+  endedAt: string | null
+  customerId: string
+  discountId: string | null
+  checkoutId: string
+  customerCancellationReason: string | null
+  customerCancellationComment: string | null
+  priceId: string
   metadata: Record<string, unknown>
-  custom_field_data: Record<string, unknown>
+  customFieldData: Record<string, unknown>
   customer: {
     id: string
     email: string
     name: string
-    external_id: string
-    created_at: string
-    modified_at: string | null
+    externalId: string
+    createdAt: string
+    modifiedAt: string | null
     metadata: Record<string, unknown>
-    email_verified: boolean
-    billing_address?: {
+    emailVerified: boolean
+    billingAddress?: {
       line1: string
       line2: string | null
-      postal_code: string
+      postalCode: string
       city: string
       state: string
       country: string
     }
-    avatar_url: string | null
+    avatarUrl: string | null
   }
   product: {
     id: string
     name: string
     description: string
-    recurring_interval: string
-    is_recurring: boolean
-    is_archived: boolean
-    organization_id: string
+    recurringInterval: string
+    isRecurring: boolean
+    isArchived: boolean
+    organizationId: string
     metadata: Record<string, unknown>
-    created_at: string
-    modified_at: string
+    createdAt: string
+    modifiedAt: string | null
   }
-  product_id: string
+  productId: string
   user: {
     id: string
     email: string
-    public_name: string
-    avatar_url: string | null
-    github_username: string | null
+    publicName: string
+    avatarUrl: string | null
+    githubUsername: string | null
   }
 }
 
@@ -135,7 +135,7 @@ export default defineEventHandler(async (event) => {
         console.log('Entering subscription update case')
         const subData = data as PolarSubscriptionData
         try {
-          const clerkId = subData.customer.external_id
+          const clerkId = subData.customer?.externalId
           console.log('Clerk User ID:', clerkId)
 
           if (!clerkId) {
@@ -151,8 +151,9 @@ export default defineEventHandler(async (event) => {
               user_id: clerkId,
               status: subData.status,
               plan_id: subData.product.id,
-              current_period_end: subData.current_period_end,
-              cancel_at: subData.canceled_at,
+              current_period_end: new Date(subData.currentPeriodEnd).toISOString(),
+              cancel_at: subData.canceledAt ? new Date(subData.canceledAt).toISOString() : null,
+              created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }, {
               onConflict: 'subscription_id'
@@ -175,7 +176,8 @@ export default defineEventHandler(async (event) => {
                 amount: subData.amount,
                 currency: subData.currency,
                 status: 'succeeded',
-                payment_date: new Date().toISOString()
+                payment_date: new Date().toISOString(),
+                created_at: new Date().toISOString()
               })
 
             if (paymentError) {
@@ -236,15 +238,22 @@ export default defineEventHandler(async (event) => {
       case 'order.paid':
       case 'order.refunded': {
         const orderData = data as PolarOrderData
-        await supabase
+        const { error: paymentError } = await supabase
           .from('subscription_payments')
           .insert({
+            id: crypto.randomUUID(), // Generate UUID for the payment
             subscription_id: orderData.subscription_id,
             amount: orderData.amount,
             currency: orderData.currency,
             status: type === 'order.paid' ? 'succeeded' : 'refunded',
-            payment_date: new Date().toISOString()
+            payment_date: new Date().toISOString(),
+            created_at: new Date().toISOString()
           })
+
+        if (paymentError) {
+          console.error('Error creating payment record:', paymentError)
+          throw paymentError
+        }
         break
       }
 
