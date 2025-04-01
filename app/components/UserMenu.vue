@@ -2,6 +2,10 @@
 import type { DropdownMenuItem } from '@nuxt/ui'
 import { useUser, useAuth } from '@clerk/vue'
 
+interface PortalResponse {
+  url: string
+}
+
 defineProps<{
   collapsed?: boolean
 }>()
@@ -41,8 +45,15 @@ const items = computed<DropdownMenuItem[][]>(() => {
   }], [{
     label: 'Billing',
     icon: 'i-lucide-credit-card',
-    onSelect: () => {
-      window.open('https://polar.sh/app-track/portal', '_blank')
+    onSelect: async () => {
+      try {
+        const { data } = await useFetch<PortalResponse>('/api/portal')
+        if (data.value?.url) {
+          window.open(data.value.url, '_blank')
+        }
+      } catch (error) {
+        console.error('Failed to get portal URL:', error)
+      }
     }
   }], [{
     label: 'Theme',

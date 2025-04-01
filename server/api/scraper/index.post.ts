@@ -61,7 +61,10 @@ export default defineEventHandler(async (event) => {
       promptContent = `
       IMPORTANT: This is a LinkedIn job page. 
       
-      1. Focus ONLY on the main job content found within elements with class="job-view-layout jobs-details". 
+      1. Focus ONLY on the main job content found within elements with any of these classes:
+         - class="job-view-layout jobs-details"
+         - class="jobs-search__job-details--wrapper"
+         - class="jobs-details__main-content jobs-details__main-content--single-pane full-width"
       2. Ignore any sidebar job recommendations or other LinkedIn content outside this main panel.
       3. For LinkedIn jobs:
          - The company name is typically found in the "company-name" or "topcard__org-name-link" elements
@@ -169,7 +172,7 @@ export default defineEventHandler(async (event) => {
       companyName: extractedData.companyName,
       email: extractedData.email,
       status: 'pending',
-      amount: extractedData.amount,
+      amount: Math.round(extractedData.amount), // Round to nearest integer
       notes: combinedNotes,
       jobTitle: extractedData.jobTitle || null
     }
