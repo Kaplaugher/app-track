@@ -1,5 +1,8 @@
 # AppTrack - Smart Job Application Tracking
 
+https://app-track.nuxt.dev/
+
+
 A modern web application built with Nuxt 3 to help job seekers manage their job search process effectively.
 
 ## Features
@@ -9,13 +12,11 @@ A modern web application built with Nuxt 3 to help job seekers manage their job 
 - 📊 **Job Analytics**: Insights and metrics about your application process
 - 🔄 **Browser Extension**: Seamless job application tracking (Pro Plan)
 - 👻 **Ghost Job Analysis**: Identify potentially inactive job listings (Pro Plan)
+  <img width="1297" alt="Screenshot 2025-04-19 at 9 56 30 AM" src="https://github.com/user-attachments/assets/4e1e83a1-ad47-45a6-b2e0-fccd5883648a" />
+<img width="1292" alt="Screenshot 2025-04-19 at 9 56 55 AM" src="https://github.com/user-attachments/assets/ef289adf-f5c3-4a59-977f-d6a9fa3ef5f9" />
+<img width="1299" alt="Screenshot 2025-04-19 at 9 58 55 AM" src="https://github.com/user-attachments/assets/0179a0d1-4ea2-445a-bc9f-41a0e4575006" />
 
-## Tech Stack
 
-- [Nuxt 3](https://nuxt.com/) - The Vue Framework
-- [TypeScript](https://www.typescriptlang.org/) - Type safety
-- [Nuxt UI](https://ui.nuxt.com/) - UI Components
-- [Tailwind CSS](https://tailwindcss.com/) - Styling
 
 ## Getting Started
 
